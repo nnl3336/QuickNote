@@ -72,7 +72,7 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
             }
-            .fullScreenCover(isPresented: $showingAddNote) {
+            .sheet(isPresented: $showingAddNote) {
                 AddNoteView(attributedText: $attributedText)
                     .environment(\.managedObjectContext, viewContext)
             }
@@ -116,12 +116,26 @@ struct AddNoteView: View {
     }
     
     private func save() {
+        // 空なら保存せずに閉じる
+        if attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            dismiss()
+            return
+        }
+
         let note = Note(context: viewContext)
-        note.content = attributedText.string                  // 検索用プレーンテキスト
-        note.attributedContent = try? attributedText.data(from: NSRange(location: 0, length: attributedText.length),
-                                                           documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
+        note.content = attributedText.string  // 検索用プレーンテキスト
+        note.attributedContent = try? attributedText.data(
+            from: NSRange(location: 0, length: attributedText.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
+        )
         note.date = Date()
-        try? viewContext.save()
+        
+        do {
+            try viewContext.save()
+        } catch {
+            print("保存エラー: \(error)")
+        }
+        
         dismiss()
     }
 }
@@ -144,16 +158,19 @@ struct EditNoteView: View {
     var body: some View {
         NavigationView {
             VStack {
+                // 入力欄
                 UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
                     .frame(minHeight: 100, maxHeight: .infinity)
                     .padding()
                     .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(8)
                 
+                // キーボード分のスペース
                 Spacer().frame(height: bottomPadding)
             }
             .padding()
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            .navigationTitle("メモを編集")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") { dismiss() }
@@ -189,21 +206,41 @@ struct EditNoteView: View {
     }
     
     private func save() {
+        // 空なら削除
+        if attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            viewContext.delete(note)
+            try? viewContext.save()
+            attributedText = NSMutableAttributedString(string: "") // ← 初期化
+            dismiss()
+            return
+        }
+
+        // リンク付きに補正
+        let refreshed = NSMutableAttributedString.withLinkDetection(from: attributedText.string)
+        attributedText = refreshed
+        
+        // 装飾付きテキストを保存
         note.attributedContent = try? attributedText.data(
             from: NSRange(location: 0, length: attributedText.length),
             documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
         )
         note.content = attributedText.string
-        note.date = Date()
-        
+        // date は更新しない
+
         do {
             try viewContext.save()
             didSave = true
         } catch {
             print("保存エラー: \(error)")
         }
+
+        // 🔹 保存後に初期化しておく
+        attributedText = NSMutableAttributedString(string: "")
+        
+        dismiss()
     }
-    
+
+
     private func startKeyboardObserver() {
         keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
             .compactMap { $0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect }
@@ -228,17 +265,15 @@ struct UITextViewWrapper: UIViewRepresentable {
         let textView = UITextView()
         textView.isEditable = true
         textView.isSelectable = true
-        textView.dataDetectorTypes = [.link]
-        textView.delegate = context.coordinator
-        textView.backgroundColor = .clear
-
-        // スクロール可能にする
+        textView.dataDetectorTypes = [.link]   // 自動リンク検出
         textView.isScrollEnabled = true
-        textView.alwaysBounceVertical = true // 縦方向にスクロールできるように
-        textView.showsVerticalScrollIndicator = true
-        textView.showsHorizontalScrollIndicator = false
-        textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 20, right: 4)
-
+        textView.alwaysBounceVertical = true
+        textView.delegate = context.coordinator
+        textView.linkTextAttributes = [
+            .foregroundColor: UIColor.systemBlue,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        textView.backgroundColor = .clear
         return textView
     }
     
@@ -260,5 +295,18 @@ struct UITextViewWrapper: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             parent.attributedText = NSMutableAttributedString(attributedString: textView.attributedText)
         }
+        
+        func textView(_ textView: UITextView,
+                      shouldInteractWith URL: URL,
+                      in characterRange: NSRange,
+                      interaction: UITextItemInteraction) -> Bool {
+            // http または https のリンクのみ開く
+            if URL.absoluteString.lowercased().hasPrefix("http://") ||
+               URL.absoluteString.lowercased().hasPrefix("https://") {
+                UIApplication.shared.open(URL)
+            }
+            return false // デフォルト処理はキャンセル
+        }
     }
 }
+
