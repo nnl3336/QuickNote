@@ -30,6 +30,9 @@ struct ContentView: View {
     }
     
     @State private var attributedText = NSMutableAttributedString()
+    
+    @FocusState private var isSearchFocused: Bool
+    @State private var isKeyboardVisible = false
 
     
     var body: some View {
@@ -40,32 +43,24 @@ struct ContentView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                     .textInputAutocapitalization(.never)
+                    .focused($isSearchFocused) // TextField にバインド
                 
                 // メモリスト
-                List {
-                    ForEach(filteredNotes) { note in
-                        NavigationLink(destination:
-                            EditNoteView(note: note)
-                                .environment(\.managedObjectContext, viewContext)
-                        ) {
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(note.content ?? "")
-                                        .font(.body)
-                                        .lineLimit(1)
-                                    Text(note.date ?? Date(), style: .date)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                Spacer()
+                ScrollableList(isKeyboardVisible: $isKeyboardVisible) {
+                    List {
+                        ForEach(filteredNotes) { note in
+                            NavigationLink(destination: EditNoteView(note: note)
+                                                .environment(\.managedObjectContext, viewContext)) {
+                                Text(note.content ?? "")
                             }
                         }
-                    }
-                    .onDelete { indexSet in
-                        indexSet.map { filteredNotes[$0] }.forEach(viewContext.delete)
-                        try? viewContext.save()
+                        .onDelete { indexSet in
+                            indexSet.map { filteredNotes[$0] }.forEach(viewContext.delete)
+                            try? viewContext.save()
+                        }
                     }
                 }
+                .focused($isSearchFocused)
 
             }
             .toolbar {

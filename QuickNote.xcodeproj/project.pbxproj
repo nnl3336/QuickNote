@@ -10,6 +10,7 @@
 		184E9D6E2E5C5B68003B03D3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9D6D2E5C5B68003B03D3 /* ContentView.swift */; };
 		184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */; };
 		184E9D9D2E5C7812003B03D3 /* extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9D9C2E5C7812003B03D3 /* extension.swift */; };
+		184E9D9F2E5D2CC8003B03D3 /* UIViewRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +37,7 @@
 		184E9D832E5C5B6A003B03D3 /* QuickNoteUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuickNoteUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITextViewWrapper.swift; sourceTree = "<group>"; };
 		184E9D9C2E5C7812003B03D3 /* extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension.swift; sourceTree = "<group>"; };
+		184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewRepresentable.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -89,6 +91,7 @@
 				184E9D862E5C5B6A003B03D3 /* QuickNoteUITests */,
 				184E9D6D2E5C5B68003B03D3 /* ContentView.swift */,
 				184E9D9C2E5C7812003B03D3 /* extension.swift */,
+				184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */,
 				184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */,
 				184E9D642E5C5B68003B03D3 /* Products */,
 			);
@@ -250,6 +253,7 @@
 			files = (
 				184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */,
 				184E9D9D2E5C7812003B03D3 /* extension.swift in Sources */,
+				184E9D9F2E5D2CC8003B03D3 /* UIViewRepresentable.swift in Sources */,
 				184E9D6E2E5C5B68003B03D3 /* ContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
