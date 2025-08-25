@@ -29,6 +29,9 @@ struct ContentView: View {
         }
     }
     
+    @State private var attributedText = NSMutableAttributedString()
+
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -69,10 +72,11 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
             }
-            .sheet(isPresented: $showingAddNote) {
-                AddNoteView()
+            .fullScreenCover(isPresented: $showingAddNote) {
+                AddNoteView(attributedText: $attributedText)
                     .environment(\.managedObjectContext, viewContext)
             }
+
             .sheet(item: $selectedNote) { note in
                 EditNoteView(note: note)
                     .environment(\.managedObjectContext, viewContext)
@@ -86,26 +90,15 @@ struct AddNoteView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
-    @State private var attributedText = NSMutableAttributedString()
-    @State private var keyboardHeight: CGFloat = 0
-    @State private var keyboardWillShow: AnyCancellable?
-    @State private var keyboardWillHide: AnyCancellable?
-    
-    private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
+    @Binding var attributedText: NSMutableAttributedString
     
     var body: some View {
         NavigationView {
             VStack {
                 UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
-                    .frame(minHeight: 100, maxHeight: .infinity)
                     .padding()
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(8)
-                
-                Spacer().frame(height: bottomPadding)
+                Spacer()
             }
-            .padding()
-            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationTitle("新しいメモ")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -116,37 +109,20 @@ struct AddNoteView: View {
                         .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .onAppear { startKeyboardObserver() }
-            .onDisappear { stopKeyboardObserver() }
+            .onDisappear {
+                save() // dismiss 時に保存
+            }
         }
     }
     
     private func save() {
         let note = Note(context: viewContext)
-        // 装飾付きテキストをDataで保存（必要なら）
-        note.attributedContent = try? attributedText.data(
-            from: NSRange(location: 0, length: attributedText.length),
-            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
-        )
-        // 検索用プレーンテキスト
-        note.content = attributedText.string
+        note.content = attributedText.string                  // 検索用プレーンテキスト
+        note.attributedContent = try? attributedText.data(from: NSRange(location: 0, length: attributedText.length),
+                                                           documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd])
         note.date = Date()
         try? viewContext.save()
         dismiss()
-    }
-    
-    private func startKeyboardObserver() {
-        keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-            .compactMap { $0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect }
-            .map { $0.height }
-            .sink { height in withAnimation { self.keyboardHeight = height } }
-        keyboardWillHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
-            .sink { _ in withAnimation { self.keyboardHeight = 0 } }
-    }
-    
-    private func stopKeyboardObserver() {
-        keyboardWillShow?.cancel()
-        keyboardWillHide?.cancel()
     }
 }
 
@@ -161,6 +137,8 @@ struct EditNoteView: View {
     @State private var keyboardWillShow: AnyCancellable?
     @State private var keyboardWillHide: AnyCancellable?
     
+    @State private var didSave = false // 保存済みかフラグ
+    
     private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
     
     var body: some View {
@@ -181,8 +159,11 @@ struct EditNoteView: View {
                     Button("キャンセル") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { save() }
-                        .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("保存") {
+                        save()
+                        dismiss()
+                    }
+                    .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .onAppear {
@@ -196,21 +177,31 @@ struct EditNoteView: View {
                 }
                 startKeyboardObserver()
             }
-            .onDisappear { stopKeyboardObserver() }
+            .onDisappear {
+                stopKeyboardObserver()
+                
+                // 保存していなければ自動保存
+                if !didSave && !attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    save()
+                }
+            }
         }
     }
     
     private func save() {
-        // 装飾付きテキスト
         note.attributedContent = try? attributedText.data(
             from: NSRange(location: 0, length: attributedText.length),
             documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
         )
-        // 検索用テキスト
         note.content = attributedText.string
         note.date = Date()
-        try? viewContext.save()
-        dismiss()
+        
+        do {
+            try viewContext.save()
+            didSave = true
+        } catch {
+            print("保存エラー: \(error)")
+        }
     }
     
     private func startKeyboardObserver() {
@@ -240,6 +231,14 @@ struct UITextViewWrapper: UIViewRepresentable {
         textView.dataDetectorTypes = [.link]
         textView.delegate = context.coordinator
         textView.backgroundColor = .clear
+
+        // スクロール可能にする
+        textView.isScrollEnabled = true
+        textView.alwaysBounceVertical = true // 縦方向にスクロールできるように
+        textView.showsVerticalScrollIndicator = true
+        textView.showsHorizontalScrollIndicator = false
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 20, right: 4)
+
         return textView
     }
     
