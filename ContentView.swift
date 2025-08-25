@@ -72,13 +72,13 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
             }
-            .sheet(isPresented: $showingAddNote) {
-                AddNoteView(attributedText: $attributedText)
+            .fullScreenCover(item: $selectedNote) { note in
+                EditNoteView(note: note)
                     .environment(\.managedObjectContext, viewContext)
             }
 
-            .sheet(item: $selectedNote) { note in
-                EditNoteView(note: note)
+            .fullScreenCover(isPresented: $showingAddNote) {
+                AddNoteView(attributedText: $attributedText)
                     .environment(\.managedObjectContext, viewContext)
             }
         }
