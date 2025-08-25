@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import Combine
 
 // MARK: - ContentView
 struct ContentView: View {
@@ -40,13 +41,20 @@ struct ContentView: View {
                 // メモリスト
                 List {
                     ForEach(filteredNotes) { note in
-                        VStack(alignment: .leading) {
-                            Text(note.content ?? "")
-                                .font(.body)
-                            Text(note.date ?? Date(), style: .date)
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                        ZStack {
+                            Color.clear
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(note.content ?? "")
+                                        .font(.body)
+                                    Text(note.date ?? Date(), style: .date)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                                Spacer()
+                            }
                         }
+                        .contentShape(Rectangle())
                         .onTapGesture {
                             selectedNote = note
                         }
@@ -63,12 +71,10 @@ struct ContentView: View {
                     Image(systemName: "plus")
                 }
             }
-            // 追加画面
             .sheet(isPresented: $showingAddNote) {
                 AddNoteView()
                     .environment(\.managedObjectContext, viewContext)
             }
-            // 編集画面
             .sheet(item: $selectedNote) { note in
                 EditNoteView(note: note)
                     .environment(\.managedObjectContext, viewContext)
@@ -77,22 +83,30 @@ struct ContentView: View {
     }
 }
 
-// MARK: - 追加画面
+// MARK: - AddNoteView
 struct AddNoteView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
     @State private var noteText: String = ""
-    
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var keyboardWillShow: AnyCancellable?
+    @State private var keyboardWillHide: AnyCancellable?
+
+    private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
+
     var body: some View {
         NavigationView {
             VStack {
                 UITextViewWrapper(text: $noteText, isFirstResponder: true)
-                    .frame(height: 200)
+                    .frame(minHeight: 100, maxHeight: .infinity)
                     .padding()
-                
-                Spacer()
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+
+                Spacer().frame(height: bottomPadding)
             }
+            .padding()
             .navigationTitle("新しいメモ")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -103,40 +117,59 @@ struct AddNoteView: View {
                         .disabled(noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .onAppear { startKeyboardObserver() }
+            .onDisappear { stopKeyboardObserver() }
         }
     }
-    
+
     private func save() {
         let note = Note(context: viewContext)
         note.content = noteText
         note.date = Date()
-        
-        do {
-            try viewContext.save()
-            dismiss()
-        } catch {
-            print("保存エラー: \(error)")
-        }
+        try? viewContext.save()
+        dismiss()
+    }
+    
+    private func startKeyboardObserver() {
+        keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+            .compactMap { $0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect }
+            .map { $0.height }
+            .sink { height in withAnimation { self.keyboardHeight = height } }
+        keyboardWillHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+            .sink { _ in withAnimation { self.keyboardHeight = 0 } }
+    }
+    
+    private func stopKeyboardObserver() {
+        keyboardWillShow?.cancel()
+        keyboardWillHide?.cancel()
     }
 }
 
-// MARK: - 編集画面
+// MARK: - EditNoteView
 struct EditNoteView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
     @ObservedObject var note: Note
     @State private var text: String = ""
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var keyboardWillShow: AnyCancellable?
+    @State private var keyboardWillHide: AnyCancellable?
+    
+    private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
     
     var body: some View {
         NavigationView {
             VStack {
                 UITextViewWrapper(text: $text, isFirstResponder: true)
-                    .frame(height: 200)
+                    .frame(minHeight: 100, maxHeight: .infinity)
                     .padding()
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
                 
-                Spacer()
+                Spacer().frame(height: bottomPadding)
             }
+            .padding()
             .navigationTitle("メモ編集")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -149,7 +182,9 @@ struct EditNoteView: View {
             }
             .onAppear {
                 text = note.content ?? ""
+                startKeyboardObserver()
             }
+            .onDisappear { stopKeyboardObserver() }
         }
     }
     
@@ -163,13 +198,27 @@ struct EditNoteView: View {
             print("保存エラー: \(error)")
         }
     }
+    
+    private func startKeyboardObserver() {
+        keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+            .compactMap { $0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect }
+            .map { $0.height }
+            .sink { height in withAnimation { self.keyboardHeight = height } }
+        keyboardWillHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+            .sink { _ in withAnimation { self.keyboardHeight = 0 } }
+    }
+    
+    private func stopKeyboardObserver() {
+        keyboardWillShow?.cancel()
+        keyboardWillHide?.cancel()
+    }
 }
 
-// MARK: - UITextView Wrapper（リンク対応）
+// MARK: - UITextViewWrapper (共通)
 struct UITextViewWrapper: UIViewRepresentable {
     @Binding var text: String
     var isFirstResponder: Bool = false
-
+    
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView()
         textView.isEditable = true
@@ -179,7 +228,7 @@ struct UITextViewWrapper: UIViewRepresentable {
         textView.delegate = context.coordinator
         return textView
     }
-
+    
     func updateUIView(_ uiView: UITextView, context: Context) {
         if uiView.text != text {
             uiView.text = text
@@ -188,14 +237,15 @@ struct UITextViewWrapper: UIViewRepresentable {
             uiView.becomeFirstResponder()
         }
     }
-
+    
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-
+    
     class Coordinator: NSObject, UITextViewDelegate {
         var parent: UITextViewWrapper
         init(_ parent: UITextViewWrapper) { self.parent = parent }
+        
         func textViewDidChange(_ textView: UITextView) {
             parent.text = textView.text
         }
