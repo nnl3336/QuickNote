@@ -163,7 +163,6 @@ struct EditNoteView: View {
     private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
     
     var body: some View {
-        NavigationView {
             VStack {
                 // 入力欄
                 UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
@@ -209,7 +208,7 @@ struct EditNoteView: View {
                     save()
                 }
             }
-        }
+        
     }
     
     private func save() {
