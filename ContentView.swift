@@ -47,6 +47,7 @@ struct ContentView: View {
                                 VStack(alignment: .leading) {
                                     Text(note.content ?? "")
                                         .font(.body)
+                                        .lineLimit(1)
                                     Text(note.date ?? Date(), style: .date)
                                         .font(.caption)
                                         .foregroundColor(.gray)
@@ -55,9 +56,7 @@ struct ContentView: View {
                             }
                         }
                         .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedNote = note
-                        }
+                        .onTapGesture { selectedNote = note }
                     }
                     .onDelete { indexSet in
                         indexSet.map { filteredNotes[$0] }.forEach(viewContext.delete)
@@ -65,7 +64,6 @@ struct ContentView: View {
                     }
                 }
             }
-            //.navigationTitle("メモ")
             .toolbar {
                 Button(action: { showingAddNote = true }) {
                     Image(systemName: "plus")
@@ -88,26 +86,26 @@ struct AddNoteView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
-    @State private var noteText: String = ""
+    @State private var attributedText = NSMutableAttributedString()
     @State private var keyboardHeight: CGFloat = 0
     @State private var keyboardWillShow: AnyCancellable?
     @State private var keyboardWillHide: AnyCancellable?
-
+    
     private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
-
+    
     var body: some View {
         NavigationView {
             VStack {
-                UITextViewWrapper(text: $noteText, isFirstResponder: true)
+                UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
                     .frame(minHeight: 100, maxHeight: .infinity)
                     .padding()
                     .background(Color(UIColor.secondarySystemBackground))
                     .cornerRadius(8)
-
+                
                 Spacer().frame(height: bottomPadding)
             }
             .padding()
-            .ignoresSafeArea(.keyboard, edges: .bottom) // 👈 キーボードで潰れない
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationTitle("新しいメモ")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -115,17 +113,23 @@ struct AddNoteView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") { save() }
-                        .disabled(noteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .onAppear { startKeyboardObserver() }
             .onDisappear { stopKeyboardObserver() }
         }
     }
-
+    
     private func save() {
         let note = Note(context: viewContext)
-        note.content = noteText
+        // 装飾付きテキストをDataで保存（必要なら）
+        note.attributedContent = try? attributedText.data(
+            from: NSRange(location: 0, length: attributedText.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
+        )
+        // 検索用プレーンテキスト
+        note.content = attributedText.string
         note.date = Date()
         try? viewContext.save()
         dismiss()
@@ -152,7 +156,7 @@ struct EditNoteView: View {
     @Environment(\.dismiss) private var dismiss
     
     @ObservedObject var note: Note
-    @State private var text: String = ""
+    @State private var attributedText = NSMutableAttributedString()
     @State private var keyboardHeight: CGFloat = 0
     @State private var keyboardWillShow: AnyCancellable?
     @State private var keyboardWillHide: AnyCancellable?
@@ -162,7 +166,7 @@ struct EditNoteView: View {
     var body: some View {
         NavigationView {
             VStack {
-                UITextViewWrapper(text: $text, isFirstResponder: true)
+                UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
                     .frame(minHeight: 100, maxHeight: .infinity)
                     .padding()
                     .background(Color(UIColor.secondarySystemBackground))
@@ -171,19 +175,25 @@ struct EditNoteView: View {
                 Spacer().frame(height: bottomPadding)
             }
             .padding()
-            .ignoresSafeArea(.keyboard, edges: .bottom) // 👈 キーボードで潰れない
-            //.navigationTitle("メモ編集")
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") { save() }
-                        .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .onAppear {
-                text = note.content ?? ""
+                if let data = note.attributedContent,
+                   let attr = try? NSAttributedString(data: data,
+                                                     options: [.documentType: NSAttributedString.DocumentType.rtfd],
+                                                     documentAttributes: nil) {
+                    self.attributedText = NSMutableAttributedString(attributedString: attr)
+                } else {
+                    self.attributedText = NSMutableAttributedString(string: note.content ?? "")
+                }
                 startKeyboardObserver()
             }
             .onDisappear { stopKeyboardObserver() }
@@ -191,14 +201,16 @@ struct EditNoteView: View {
     }
     
     private func save() {
-        note.content = text
+        // 装飾付きテキスト
+        note.attributedContent = try? attributedText.data(
+            from: NSRange(location: 0, length: attributedText.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
+        )
+        // 検索用テキスト
+        note.content = attributedText.string
         note.date = Date()
-        do {
-            try viewContext.save()
-            dismiss()
-        } catch {
-            print("保存エラー: \(error)")
-        }
+        try? viewContext.save()
+        dismiss()
     }
     
     private func startKeyboardObserver() {
@@ -216,9 +228,9 @@ struct EditNoteView: View {
     }
 }
 
-// MARK: - UITextViewWrapper (共通)
+// MARK: - UITextViewWrapper
 struct UITextViewWrapper: UIViewRepresentable {
-    @Binding var text: String
+    @Binding var attributedText: NSMutableAttributedString
     var isFirstResponder: Bool = false
     
     func makeUIView(context: Context) -> UITextView {
@@ -226,30 +238,28 @@ struct UITextViewWrapper: UIViewRepresentable {
         textView.isEditable = true
         textView.isSelectable = true
         textView.dataDetectorTypes = [.link]
-        textView.font = UIFont.systemFont(ofSize: 16)
         textView.delegate = context.coordinator
+        textView.backgroundColor = .clear
         return textView
     }
     
     func updateUIView(_ uiView: UITextView, context: Context) {
-        if uiView.text != text {
-            uiView.text = text
+        if uiView.attributedText != attributedText {
+            uiView.attributedText = attributedText
         }
         if isFirstResponder && !uiView.isFirstResponder {
             uiView.becomeFirstResponder()
         }
     }
     
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
     
     class Coordinator: NSObject, UITextViewDelegate {
         var parent: UITextViewWrapper
         init(_ parent: UITextViewWrapper) { self.parent = parent }
         
         func textViewDidChange(_ textView: UITextView) {
-            parent.text = textView.text
+            parent.attributedText = NSMutableAttributedString(attributedString: textView.attributedText)
         }
     }
 }
