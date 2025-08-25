@@ -76,7 +76,7 @@ struct AddNoteView: View {
     var body: some View {
         NavigationView {
             VStack {
-                UITextViewWrapper(text: $noteText)
+                UITextViewWrapper(text: $noteText, isFirstResponder: true)
                     .frame(height: 200)
                     .padding()
                 
@@ -109,36 +109,4 @@ struct AddNoteView: View {
     }
 }
 
-// MARK: - UITextView Wrapper
-struct UITextViewWrapper: UIViewRepresentable {
-    @Binding var text: String
 
-    func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
-        textView.isEditable = true
-        textView.isSelectable = true
-        textView.dataDetectorTypes = [.link] // リンク検出
-        textView.font = UIFont.systemFont(ofSize: 16)
-        textView.delegate = context.coordinator
-        return textView
-    }
-
-    func updateUIView(_ uiView: UITextView, context: Context) {
-        if uiView.text != text {
-            uiView.text = text
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-
-    class Coordinator: NSObject, UITextViewDelegate {
-        var parent: UITextViewWrapper
-        init(_ parent: UITextViewWrapper) { self.parent = parent }
-        
-        func textViewDidChange(_ textView: UITextView) {
-            parent.text = textView.text
-        }
-    }
-}
