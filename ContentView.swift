@@ -65,7 +65,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .navigationTitle("メモ")
+            //.navigationTitle("メモ")
             .toolbar {
                 Button(action: { showingAddNote = true }) {
                     Image(systemName: "plus")
@@ -107,6 +107,7 @@ struct AddNoteView: View {
                 Spacer().frame(height: bottomPadding)
             }
             .padding()
+            .ignoresSafeArea(.keyboard, edges: .bottom) // 👈 キーボードで潰れない
             .navigationTitle("新しいメモ")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -170,7 +171,8 @@ struct EditNoteView: View {
                 Spacer().frame(height: bottomPadding)
             }
             .padding()
-            .navigationTitle("メモ編集")
+            .ignoresSafeArea(.keyboard, edges: .bottom) // 👈 キーボードで潰れない
+            //.navigationTitle("メモ編集")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") { dismiss() }
