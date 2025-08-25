@@ -66,7 +66,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - 追加画面
+// MARK: - 追加画面（UITextView対応）
 struct AddNoteView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
@@ -76,9 +76,9 @@ struct AddNoteView: View {
     var body: some View {
         NavigationView {
             VStack {
-                TextEditor(text: $noteText)
+                UITextViewWrapper(text: $noteText)
+                    .frame(height: 200)
                     .padding()
-                    .border(Color.gray.opacity(0.5))
                 
                 Spacer()
             }
@@ -105,6 +105,40 @@ struct AddNoteView: View {
             dismiss()
         } catch {
             print("保存エラー: \(error)")
+        }
+    }
+}
+
+// MARK: - UITextView Wrapper
+struct UITextViewWrapper: UIViewRepresentable {
+    @Binding var text: String
+
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.dataDetectorTypes = [.link] // リンク検出
+        textView.font = UIFont.systemFont(ofSize: 16)
+        textView.delegate = context.coordinator
+        return textView
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, UITextViewDelegate {
+        var parent: UITextViewWrapper
+        init(_ parent: UITextViewWrapper) { self.parent = parent }
+        
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
         }
     }
 }
