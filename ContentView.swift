@@ -31,7 +31,6 @@ struct ContentView: View {
     
     @State private var attributedText = NSMutableAttributedString()
 
-    
     var body: some View {
         NavigationView {
             ZStack {
@@ -71,28 +70,28 @@ struct ContentView: View {
                 }
                 // 右下の追加ボタン
                 VStack {
+                    Spacer()
+                    HStack {
                         Spacer()
-                        HStack {
-                            Spacer()
-                            NavigationLink(
-                                destination: AddNoteView(attributedText: $attributedText)
-                                    .environment(\.managedObjectContext, viewContext)
-                            ) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 24))
-                                    .padding()
-                                    .background(Color.accentColor)
-                                    .foregroundColor(.white)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 4)
-                            }
-                            .simultaneousGesture(TapGesture().onEnded {
-                                // 新規作成用に毎回初期化
-                                attributedText = NSMutableAttributedString(string: "")
-                            })
-                            .padding()
+                        NavigationLink(
+                            destination: AddNoteView(attributedText: $attributedText)
+                                .environment(\.managedObjectContext, viewContext)
+                        ) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 24))
+                                .padding()
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .clipShape(Circle())
+                                .shadow(radius: 4)
                         }
+                        .simultaneousGesture(TapGesture().onEnded {
+                            // 新規作成用に毎回初期化
+                            attributedText = NSMutableAttributedString(string: "")
+                        })
+                        .padding()
                     }
+                }
             }
             .toolbar {
                 NavigationLink(
@@ -118,6 +117,7 @@ struct ContentView: View {
             }
         }
     }
+
 }
 
 // MARK: - AddNoteView
@@ -128,12 +128,34 @@ struct AddNoteView: View {
     @Binding var attributedText: NSMutableAttributedString
     
     @Environment(\.presentationMode) var presentationMode
+    
+    @State private var showToast = false
 
     var body: some View {
-        VStack {
-            UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
-                .padding()
-            Spacer()
+        ZStack {
+            VStack {
+                UITextViewWrapper(
+                    attributedText: $attributedText,
+                    isFirstResponder: true,
+                    onCopy: showCopyToast // ← これでコピー時に呼ばれる
+                )
+                    .padding()
+                Spacer()
+            }
+            
+            
+            if showToast {
+                VStack {
+                    Spacer()
+                    Text("コピーしました")
+                        .padding()
+                        .background(Color.black.opacity(0.7))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .transition(.opacity)
+                        .padding(.bottom, 50)
+                }
+            }
         }
         .navigationTitle("新しいメモ")   // ← NavigationView は外側に任せる
         .toolbar {
@@ -159,6 +181,13 @@ struct AddNoteView: View {
         //.navigationBarBackButtonHidden(true)
         .onDisappear {
             save() // dismiss 時に保存
+        }
+    }
+    
+    func showCopyToast() {
+        withAnimation { showToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation { showToast = false }
         }
     }
     
@@ -203,21 +232,38 @@ struct EditNoteView: View {
     private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
     
     @Environment(\.presentationMode) var presentationMode
+    
+    @State private var showToast = false
 
     var body: some View {
+        ZStack {
             VStack {
                 // 入力欄
-                UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
-                    //.frame(minHeight: 100, maxHeight: .infinity)
+                UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true, onCopy: showCopyToast)
+                //.frame(minHeight: 100, maxHeight: .infinity)
                     .padding()
-                    //.background(Color(UIColor.secondarySystemBackground))
-                    //.cornerRadius(8)
+                //.background(Color(UIColor.secondarySystemBackground))
+                //.cornerRadius(8)
                 
                 // キーボード分のスペース
                 //Spacer().frame(height: bottomPadding)
             }
             //.padding()
             //.ignoresSafeArea(.keyboard, edges: .bottom)
+            
+            if showToast {
+                VStack {
+                    Spacer()
+                    Text("コピーしました")
+                        .padding()
+                        .background(Color.black.opacity(0.7))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .transition(.opacity)
+                        .padding(.bottom, 50)
+                }
+            }
+        }
             .navigationTitle("メモを編集")
             .toolbar {
                 /*
@@ -261,6 +307,13 @@ struct EditNoteView: View {
                 }
             }
         
+    }
+    
+    func showCopyToast() {
+        withAnimation { showToast = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation { showToast = false }
+        }
     }
     
     private func save() {

@@ -11,6 +11,7 @@ import SwiftUI
 struct UITextViewWrapper: UIViewRepresentable {
     @Binding var attributedText: NSMutableAttributedString
     var isFirstResponder: Bool = false
+    var onCopy: (() -> Void)? // 追加
     
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView()
@@ -29,8 +30,8 @@ struct UITextViewWrapper: UIViewRepresentable {
         // キーボードの上にツールバーを追加
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
-        let copyButton = UIBarButtonItem(title: "コピー", style: .plain, target: context.coordinator, action: #selector(context.coordinator.copyText))
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let copyButton = UIBarButtonItem(image: UIImage(systemName: "doc.on.doc"), style: .plain, target: context.coordinator, action: #selector(context.coordinator.copyText))
         toolbar.items = [flexibleSpace, copyButton]
         textView.inputAccessoryView = toolbar
 
@@ -57,8 +58,9 @@ struct UITextViewWrapper: UIViewRepresentable {
         }
         
         @objc func copyText() {
-                UIPasteboard.general.string = parent.attributedText.string
-            }
+            UIPasteboard.general.string = parent.attributedText.string
+            parent.onCopy?() // ← これでコピー時にトースト表示
+        }
         
         func textView(_ textView: UITextView,
                       shouldInteractWith URL: URL,
