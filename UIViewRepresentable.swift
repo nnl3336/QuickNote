@@ -64,7 +64,7 @@ struct UITextViewWrapper: UIViewRepresentable {
         let textView = UITextView()
         textView.isEditable = true
         textView.isSelectable = true
-        textView.dataDetectorTypes = [.link]
+        //textView.dataDetectorTypes = [.link]
         textView.isScrollEnabled = true
         textView.alwaysBounceVertical = true
         textView.delegate = context.coordinator
