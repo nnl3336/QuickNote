@@ -30,28 +30,36 @@ struct ContentView: View {
     }
     
     @State private var attributedText = NSMutableAttributedString()
-    
-    @FocusState private var isSearchFocused: Bool
-    @State private var isKeyboardVisible = false
 
     
     var body: some View {
         NavigationView {
-            VStack {
-                // 検索バー
-                TextField("検索", text: $searchText)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                    .textInputAutocapitalization(.never)
-                    .focused($isSearchFocused) // TextField にバインド
-                
-                // メモリスト
-                ScrollableList(isKeyboardVisible: $isKeyboardVisible) {
+            ZStack {
+                VStack {
+                    // 検索バー
+                    TextField("検索", text: $searchText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding()
+                        .textInputAutocapitalization(.never)
+                    
+                    // メモリスト
                     List {
                         ForEach(filteredNotes) { note in
-                            NavigationLink(destination: EditNoteView(note: note)
-                                                .environment(\.managedObjectContext, viewContext)) {
-                                Text(note.content ?? "")
+                            NavigationLink(destination:
+                                            EditNoteView(note: note)
+                                .environment(\.managedObjectContext, viewContext)
+                            ) {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(note.content ?? "")
+                                            .font(.body)
+                                            .lineLimit(1)
+                                        Text(note.date ?? Date(), style: .date)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    Spacer()
+                                }
                             }
                         }
                         .onDelete { indexSet in
@@ -59,9 +67,32 @@ struct ContentView: View {
                             try? viewContext.save()
                         }
                     }
+                    
                 }
-                .focused($isSearchFocused)
-
+                // 右下の追加ボタン
+                VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            NavigationLink(
+                                destination: AddNoteView(attributedText: $attributedText)
+                                    .environment(\.managedObjectContext, viewContext)
+                            ) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 24))
+                                    .padding()
+                                    .background(Color.accentColor)
+                                    .foregroundColor(.white)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 4)
+                            }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                // 新規作成用に毎回初期化
+                                attributedText = NSMutableAttributedString(string: "")
+                            })
+                            .padding()
+                        }
+                    }
             }
             .toolbar {
                 NavigationLink(
@@ -96,6 +127,8 @@ struct AddNoteView: View {
     
     @Binding var attributedText: NSMutableAttributedString
     
+    @Environment(\.presentationMode) var presentationMode
+
     var body: some View {
         VStack {
             UITextViewWrapper(attributedText: $attributedText, isFirstResponder: true)
@@ -104,14 +137,26 @@ struct AddNoteView: View {
         }
         .navigationTitle("新しいメモ")   // ← NavigationView は外側に任せる
         .toolbar {
+            /*ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    // 戻る
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                }
+            }*/
             ToolbarItem(placement: .cancellationAction) {
                 Button("キャンセル") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { dismiss() }
-                    .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("保存") {
+//                        save()
+                    dismiss()
+                }
+                .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
+        //.navigationBarBackButtonHidden(true)
         .onDisappear {
             save() // dismiss 時に保存
         }
@@ -157,6 +202,8 @@ struct EditNoteView: View {
     
     private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
     
+    @Environment(\.presentationMode) var presentationMode
+
     var body: some View {
             VStack {
                 // 入力欄
@@ -173,6 +220,15 @@ struct EditNoteView: View {
             //.ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationTitle("メモを編集")
             .toolbar {
+                /*
+                 ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        // 戻る
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                    }
+                }*/
                 ToolbarItem(placement: .cancellationAction) {
                     Button("キャンセル") { dismiss() }
                 }
@@ -184,6 +240,7 @@ struct EditNoteView: View {
                     .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            //.navigationBarBackButtonHidden(true)
             .onAppear {
                 if let data = note.attributedContent,
                    let attr = try? NSAttributedString(data: data,
@@ -257,57 +314,4 @@ struct EditNoteView: View {
     }
 }
 
-// MARK: - UITextViewWrapper
-struct UITextViewWrapper: UIViewRepresentable {
-    @Binding var attributedText: NSMutableAttributedString
-    var isFirstResponder: Bool = false
-    
-    func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
-        textView.isEditable = true
-        textView.isSelectable = true
-        textView.dataDetectorTypes = [.link]   // 自動リンク検出
-        textView.isScrollEnabled = true
-        textView.alwaysBounceVertical = true
-        textView.delegate = context.coordinator
-        textView.linkTextAttributes = [
-            .foregroundColor: UIColor.systemBlue,
-            .underlineStyle: NSUnderlineStyle.single.rawValue
-        ]
-        textView.backgroundColor = .clear
-        return textView
-    }
-    
-    func updateUIView(_ uiView: UITextView, context: Context) {
-        if uiView.attributedText != attributedText {
-            uiView.attributedText = attributedText
-        }
-        if isFirstResponder && !uiView.isFirstResponder {
-            uiView.becomeFirstResponder()
-        }
-    }
-    
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-    
-    class Coordinator: NSObject, UITextViewDelegate {
-        var parent: UITextViewWrapper
-        init(_ parent: UITextViewWrapper) { self.parent = parent }
-        
-        func textViewDidChange(_ textView: UITextView) {
-            parent.attributedText = NSMutableAttributedString(attributedString: textView.attributedText)
-        }
-        
-        func textView(_ textView: UITextView,
-                      shouldInteractWith URL: URL,
-                      in characterRange: NSRange,
-                      interaction: UITextItemInteraction) -> Bool {
-            // http または https のリンクのみ開く
-            if URL.absoluteString.lowercased().hasPrefix("http://") ||
-               URL.absoluteString.lowercased().hasPrefix("https://") {
-                UIApplication.shared.open(URL)
-            }
-            return false // デフォルト処理はキャンセル
-        }
-    }
-}
 
