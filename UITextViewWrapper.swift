@@ -37,15 +37,25 @@ struct UITextViewWrapper: UIViewRepresentable {
 
         return textView
     }
-    
-    func updateUIView(_ uiView: UITextView, context: Context) {
-        if uiView.attributedText != attributedText {
-            uiView.attributedText = attributedText
+
+    func updateUIView(_ textView: UITextView, context: Context) {
+            // フォント属性を付与
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 24)
+            ]
+            let newAttrText = NSMutableAttributedString(attributedString: attributedText)
+            newAttrText.addAttributes(attributes, range: NSRange(location: 0, length: newAttrText.length))
+            
+            // 差分があれば更新
+            if textView.attributedText != newAttrText {
+                textView.attributedText = newAttrText
+            }
+            
+            // 最初のフォーカス
+            if isFirstResponder && !textView.isFirstResponder {
+                textView.becomeFirstResponder()
+            }
         }
-        if isFirstResponder && !uiView.isFirstResponder {
-            uiView.becomeFirstResponder()
-        }
-    }
     
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     
