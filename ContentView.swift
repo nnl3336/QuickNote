@@ -32,7 +32,7 @@ struct ContentView: View {
     @State private var attributedText = NSMutableAttributedString()
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 VStack {
                     // 検索バー
@@ -106,7 +106,7 @@ struct ContentView: View {
                     attributedText = NSMutableAttributedString(string: "")
                 })
             }
-            .fullScreenCover(item: $selectedNote) { note in
+            /*.fullScreenCover(item: $selectedNote) { note in
                 EditNoteView(note: note)
                     .environment(\.managedObjectContext, viewContext)
             }
@@ -114,7 +114,7 @@ struct ContentView: View {
             .fullScreenCover(isPresented: $showingAddNote) {
                 AddNoteView(attributedText: $attributedText)
                     .environment(\.managedObjectContext, viewContext)
-            }
+            }*/
         }
     }
 
@@ -366,5 +366,4 @@ struct EditNoteView: View {
         keyboardWillHide?.cancel()
     }
 }
-
 
