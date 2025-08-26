@@ -11,6 +11,9 @@
 		184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */; };
 		184E9D9D2E5C7812003B03D3 /* extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9D9C2E5C7812003B03D3 /* extension.swift */; };
 		184E9D9F2E5D2CC8003B03D3 /* UIViewRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */; };
+		18792DCA2E5D94AB0057CD9C /* AddNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DC92E5D94AB0057CD9C /* AddNoteView.swift */; };
+		18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */; };
+		18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCD2E5DA2A10057CD9C /* UIViewController .swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,6 +41,9 @@
 		184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITextViewWrapper.swift; sourceTree = "<group>"; };
 		184E9D9C2E5C7812003B03D3 /* extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extension.swift; sourceTree = "<group>"; };
 		184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewRepresentable.swift; sourceTree = "<group>"; };
+		18792DC92E5D94AB0057CD9C /* AddNoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNoteView.swift; sourceTree = "<group>"; };
+		18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditNoteView.swift; sourceTree = "<group>"; };
+		18792DCD2E5DA2A10057CD9C /* UIViewController .swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController .swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -91,8 +97,9 @@
 				184E9D862E5C5B6A003B03D3 /* QuickNoteUITests */,
 				184E9D6D2E5C5B68003B03D3 /* ContentView.swift */,
 				184E9D9C2E5C7812003B03D3 /* extension.swift */,
+				18792DCD2E5DA2A10057CD9C /* UIViewController .swift */,
 				184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */,
-				184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */,
+				18792DC82E5D94070057CD9C /* - */,
 				184E9D642E5C5B68003B03D3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -105,6 +112,16 @@
 				184E9D832E5C5B6A003B03D3 /* QuickNoteUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		18792DC82E5D94070057CD9C /* - */ = {
+			isa = PBXGroup;
+			children = (
+				184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */,
+				18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */,
+				18792DC92E5D94AB0057CD9C /* AddNoteView.swift */,
+			);
+			path = "-";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -251,9 +268,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */,
 				184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */,
 				184E9D9D2E5C7812003B03D3 /* extension.swift in Sources */,
 				184E9D9F2E5D2CC8003B03D3 /* UIViewRepresentable.swift in Sources */,
+				18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */,
+				18792DCA2E5D94AB0057CD9C /* AddNoteView.swift in Sources */,
 				184E9D6E2E5C5B68003B03D3 /* ContentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
