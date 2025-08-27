@@ -44,6 +44,13 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         searchBar.delegate = self
         navigationItem.titleView = searchBar
 
+        // ナビゲーションバー右上に追加ボタン
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .add,
+            target: self,
+            action: #selector(addNote)
+        )
+
         // テーブルビュー
         tableView.delegate = self
         tableView.dataSource = self
@@ -52,20 +59,14 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-
-        // 右下ボタン
+        
         setupFloatingButton()
         
-        // ツールバー表示
-            self.navigationController?.isToolbarHidden = false
-            let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNote))
-            let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-            self.toolbarItems = [flexibleSpace, addButton]
 
         fetchNotes()
     }
@@ -156,14 +157,13 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
 
 
 class NoteEditorViewController: UIViewController, UITextViewDelegate {
-    
+
     var viewContext: NSManagedObjectContext!
     var note: Note?    // 編集対象ノート（nilなら新規）
     
     private var textView: UITextView!
     private var toastLabel: UILabel?
     private var didSave = false
-    private var isCancelling = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -212,12 +212,10 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     
     private func setupNavigationItems() {
         navigationItem.title = note?.content?.isEmpty ?? true ? "新しいメモ" : "メモを編集"
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "キャンセル",
-            style: .plain,
-            target: self,
-            action: #selector(cancelTapped)
-        )
+        
+        // 左上の自動「戻るボタン」を使用するので leftBarButtonItem は不要
+        
+        // 右上に保存ボタン
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             title: "保存",
             style: .done,
@@ -237,11 +235,6 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         } else {
             textView.text = note?.content ?? ""
         }
-    }
-    
-    @objc private func cancelTapped() {
-        isCancelling = true
-        navigationController?.popViewController(animated: true)
     }
     
     @objc private func saveTapped() {
