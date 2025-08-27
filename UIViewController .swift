@@ -57,6 +57,41 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
 
         fetchNotes()
     }
+    
+    // MARK: - UITableViewDelegate スワイプアクション
+    func tableView(_ tableView: UITableView,
+                   trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        
+        let deleteAction = UIContextualAction(style: .destructive, title: "削除") { [weak self] _, _, completionHandler in
+            guard let self = self else { return }
+            
+            let noteToDelete = self.filteredNotes[indexPath.row]
+            
+            // Core Data から削除
+            self.viewContext.delete(noteToDelete)
+            do {
+                try self.viewContext.save()
+                
+                // 配列からも削除
+                if let index = self.notes.firstIndex(of: noteToDelete) {
+                    self.notes.remove(at: index)
+                }
+                self.filteredNotes.remove(at: indexPath.row)
+                
+                tableView.deleteRows(at: [indexPath], with: .automatic)
+                
+            } catch {
+                print("削除エラー: \(error)")
+            }
+            
+            completionHandler(true)
+        }
+        
+        let configuration = UISwipeActionsConfiguration(actions: [deleteAction])
+        configuration.performsFirstActionWithFullSwipe = true // フルスワイプで削除可能
+        return configuration
+    }
+
 
     private func setupFloatingButton() {
         let button = UIButton(type: .system)
@@ -186,7 +221,10 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
         
-        let copyButton = UIBarButtonItem(title: "コピー", style: .plain, target: self, action: #selector(copyText))
+        // SF Symbol のコピーアイコン
+        let copyImage = UIImage(systemName: "doc.on.doc") // コピー用のアイコン
+        let copyButton = UIBarButtonItem(image: copyImage, style: .plain, target: self, action: #selector(copyText))
+        
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         toolbar.items = [flexibleSpace, copyButton, flexibleSpace]
         
