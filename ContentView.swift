@@ -10,287 +10,284 @@ import CoreData
 import Combine
 
 // MARK: - ContentView
-struct ContentView: View {
+struct ContentView: UIViewControllerRepresentable {
     @Environment(\.managedObjectContext) private var viewContext
-    
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
-    ) private var notes: FetchedResults<Note>
-    
-    @State private var searchText: String = ""
-    @State private var showingAddNote = false
-    @State private var selectedNote: Note? = nil
-    
-    private var filteredNotes: [Note] {
+
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let notesVC = NotesViewController()
+        notesVC.viewContext = viewContext
+        let nav = UINavigationController(rootViewController: notesVC)
+        return nav
+    }
+
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {
+        // 特に更新処理は不要
+    }
+}
+
+class NotesViewController: UITableViewController, UISearchBarDelegate {
+
+    var viewContext: NSManagedObjectContext!
+    var notes: [Note] = []
+    var filteredNotes: [Note] = []
+
+    let searchBar = UISearchBar()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        self.title = "メモ一覧"
+
+        // 検索バーをナビゲーションに追加
+        searchBar.placeholder = "検索"
+        searchBar.delegate = self
+        navigationItem.titleView = searchBar
+
+        // UITableView セル登録
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+
+        // データ読み込み
+        fetchNotes()
+    }
+
+    private func fetchNotes() {
+        let request: NSFetchRequest<Note> = Note.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
+        do {
+            notes = try viewContext.fetch(request)
+            filteredNotes = notes
+            tableView.reloadData()
+        } catch {
+            print("Fetch failed: \(error)")
+        }
+    }
+
+    // MARK: - UITableViewDataSource
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return filteredNotes.count
+    }
+
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let note = filteredNotes[indexPath.row]
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        var config = cell.defaultContentConfiguration()
+        config.text = note.content ?? ""
+        if let date = note.date {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            config.secondaryText = formatter.string(from: date)
+        }
+
+        // ★ ここで1行に制限
+        config.textProperties.numberOfLines = 1
+        config.textProperties.lineBreakMode = .byTruncatingTail
+
+        cell.contentConfiguration = config
+        return cell
+    }
+
+    // MARK: - UITableViewDelegate
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let note = filteredNotes[indexPath.row]
+        let editorVC = NoteEditorViewController()
+        editorVC.note = note
+        editorVC.viewContext = viewContext
+        navigationController?.pushViewController(editorVC, animated: true)
+    }
+
+    override func tableView(_ tableView: UITableView,
+                            commit editingStyle: UITableViewCell.EditingStyle,
+                            forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let noteToDelete = filteredNotes[indexPath.row]
+            viewContext.delete(noteToDelete)
+            try? viewContext.save()
+            fetchNotes()
+        }
+    }
+
+    // MARK: - UISearchBarDelegate
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchText.isEmpty {
-            return Array(notes)
+            filteredNotes = notes
         } else {
-            return notes.filter { $0.content?.localizedCaseInsensitiveContains(searchText) ?? false }
+            filteredNotes = notes.filter { $0.content?.localizedCaseInsensitiveContains(searchText) ?? false }
         }
+        tableView.reloadData()
     }
-    
-    @State private var attributedText = NSMutableAttributedString()
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                VStack {
-                    // 検索バー
-                    TextField("検索", text: $searchText)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding()
-                        .textInputAutocapitalization(.never)
-                    
-                    // メモリスト
-                    List {
-                        ForEach(filteredNotes) { note in
-                            NavigationLink(destination:
-                                            EditNoteView(note: note)
-                                .environment(\.managedObjectContext, viewContext)
-                            ) {
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(note.content ?? "")
-                                            .font(.body)
-                                            .lineLimit(1)
-                                        Text(note.date ?? Date(), style: .date)
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                    Spacer()
-                                }
-                            }
-                        }
-                        .onDelete { indexSet in
-                            indexSet.map { filteredNotes[$0] }.forEach(viewContext.delete)
-                            try? viewContext.save()
-                        }
-                    }
-                    
-                }
-                // 右下の追加ボタン
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        NavigationLink(
-                            destination: AddNoteView(attributedText: $attributedText)
-                                .environment(\.managedObjectContext, viewContext)
-                        ) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 24))
-                                .padding()
-                                .background(Color.accentColor)
-                                .foregroundColor(.white)
-                                .clipShape(Circle())
-                                .shadow(radius: 4)
-                        }
-                        .simultaneousGesture(TapGesture().onEnded {
-                            // 新規作成用に毎回初期化
-                            attributedText = NSMutableAttributedString(string: "")
-                        })
-                        .padding()
-                    }
-                }
-            }
-            .toolbar {
-                NavigationLink(
-                    destination: AddNoteView(attributedText: $attributedText)
-                        .environment(\.managedObjectContext, viewContext),
-                    label: {
-                        Image(systemName: "plus")
-                    }
-                )
-                .simultaneousGesture(TapGesture().onEnded {
-                    // 新規作成用に毎回初期化
-                    attributedText = NSMutableAttributedString(string: "")
-                })
-            }
-            /*.fullScreenCover(item: $selectedNote) { note in
-                EditNoteView(note: note)
-                    .environment(\.managedObjectContext, viewContext)
-            }
-
-            .fullScreenCover(isPresented: $showingAddNote) {
-                AddNoteView(attributedText: $attributedText)
-                    .environment(\.managedObjectContext, viewContext)
-            }*/
-        }
-    }
-
 }
 
 
-struct NoteEditorView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-    @Environment(\.dismiss) private var dismiss
+//
+
+
+class NoteEditorViewController: UIViewController, UITextViewDelegate {
     
-    var note: Note // 非オプショナルで渡す（新規作成は外側で Note(context:) を作る）
-    @State private var attributedText = NSMutableAttributedString()
+    var viewContext: NSManagedObjectContext!
+    var note: Note?    // 編集対象ノート（nilなら新規）
     
-    @State private var keyboardHeight: CGFloat = 0
-    @State private var keyboardWillShow: AnyCancellable?
-    @State private var keyboardWillHide: AnyCancellable?
+    private var textView: UITextView!
+    private var toastLabel: UILabel?
+    private var didSave = false
+    private var isCancelling = false
     
-    @State private var showToast = false
-    @State private var isCancelling = false
-    @State private var didSave = false
-    
-    private var bottomPadding: CGFloat { keyboardHeight > 0 ? keyboardHeight : 0 }
-    
-    var body: some View {
-        ZStack {
-            VStack {
-                UITextViewWrapper(
-                    attributedText: $attributedText,
-                    onCopy: showCopyToast
-                )
-                .padding()
-                
-                Spacer()
-            }
-            
-            if showToast {
-                VStack {
-                    Spacer()
-                    Text("コピーしました")
-                        .padding()
-                        .background(Color.black.opacity(0.7))
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .transition(.opacity)
-                        .padding(.bottom, 50)
-                }
-            }
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        
+        setupTextView()
+        setupNavigationItems()
+        
+        // 新規作成の場合は Note を生成
+        if note == nil {
+            let newNote = Note(context: viewContext)
+            newNote.id = UUID()
+            newNote.date = Date()
+            self.note = newNote
         }
-        .navigationTitle(note.content?.isEmpty ?? true ? "新しいメモ" : "メモを編集")
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("キャンセル") {
-                    isCancelling = true
-                    Task { await back() }
-                }
-            }
-            ToolbarItem(placement: .confirmationAction) {
-                Button("保存") {
-                    Task { await saveAndHideKeyboard() } // キーボードだけ閉じる保存
-                }
-                .disabled(attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .onAppear {
-            読み込み内容をセット()
-            startKeyboardObserver()
-        }
-        .onDisappear {
-            stopKeyboardObserver()
-            if !didSave && !attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Task { await back() }
-            }
-        }
+        
+        loadContent()
+        
+        // キーボード通知
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(keyboardWillShow(_:)),
+                                               name: UIResponder.keyboardWillShowNotification,
+                                               object: nil)
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(keyboardWillHide(_:)),
+                                               name: UIResponder.keyboardWillHideNotification,
+                                               object: nil)
     }
     
-    // MARK: - ノート内容を読み込み
-    private func 読み込み内容をセット() {
-        if let data = note.attributedContent,
+    private func setupTextView() {
+        textView = UITextView(frame: .zero)
+        textView.translatesAutoresizingMaskIntoConstraints = false
+        textView.font = UIFont.systemFont(ofSize: 18)
+        textView.delegate = self
+        view.addSubview(textView)
+        
+        NSLayoutConstraint.activate([
+            textView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            textView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+            textView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -8),
+            textView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        
+        textView.becomeFirstResponder()
+    }
+    
+    private func setupNavigationItems() {
+        navigationItem.title = note?.content?.isEmpty ?? true ? "新しいメモ" : "メモを編集"
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: "キャンセル",
+            style: .plain,
+            target: self,
+            action: #selector(cancelTapped)
+        )
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "保存",
+            style: .done,
+            target: self,
+            action: #selector(saveTapped)
+        )
+    }
+    
+    private func loadContent() {
+        if let data = note?.attributedContent,
            let attr = try? NSAttributedString(
                 data: data,
                 options: [.documentType: NSAttributedString.DocumentType.rtfd],
                 documentAttributes: nil
            ) {
-            self.attributedText = NSMutableAttributedString(attributedString: attr)
+            textView.attributedText = attr
         } else {
-            self.attributedText = NSMutableAttributedString(string: note.content ?? "")
+            textView.text = note?.content ?? ""
         }
     }
     
-    // MARK: - コピー時トースト表示
-    private func showCopyToast() {
-        withAnimation { showToast = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            withAnimation { showToast = false }
-        }
+    @objc private func cancelTapped() {
+        isCancelling = true
+        navigationController?.popViewController(animated: true)
     }
     
-    // MARK: - 保存してキーボードを閉じる
-    private func saveAndHideKeyboard() async {
-        let trimmed = attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        
-        note.content = trimmed
-        note.attributedContent = try? attributedText.data(
-            from: NSRange(location: 0, length: attributedText.length),
-            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
-        )
-        note.date = Date()
-        
-        do {
-            try await viewContext.perform { try viewContext.save() }
-        } catch {
-            print("保存エラー: \(error)")
-        }
-        
-        // キーボードだけ閉じる
-        await MainActor.run { hideKeyboard() }
-        didSave = true
+    @objc private func saveTapped() {
+        saveNote()
+        navigationController?.popViewController(animated: true)
     }
     
-    // MARK: - 保存して閉じる／キャンセル処理
-    private func back() async {
-        guard !isCancelling else {
-            await MainActor.run { dismiss() }
-            return
-        }
+    private func saveNote() {
+        guard let note = note else { return }
         
-        let trimmed = attributedText.string.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
         
         if trimmed.isEmpty {
-            // 空なら削除（既存ノート）
             if viewContext.registeredObjects.contains(note) {
                 viewContext.delete(note)
-                try? viewContext.save()
             }
-            await MainActor.run { dismiss() }
-            return
+        } else {
+            note.content = trimmed
+            note.attributedContent = try? textView.attributedText.data(
+                from: NSRange(location: 0, length: textView.attributedText.length),
+                documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
+            )
+            
+            if note.date == nil {
+                note.date = Date()
+            }
         }
         
-        note.content = trimmed
-        note.attributedContent = try? attributedText.data(
-            from: NSRange(location: 0, length: attributedText.length),
-            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
-        )
-        note.date = Date()
-        
         do {
-            try await viewContext.perform { try viewContext.save() }
+            try viewContext.save()
+            didSave = true
         } catch {
             print("保存エラー: \(error)")
         }
+    }
+    
+    // MARK: - Keyboard Handling
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+            textView.contentInset.bottom = frame.height
+            textView.scrollIndicatorInsets.bottom = frame.height
+        }
+    }
+    
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        textView.contentInset.bottom = 0
+        textView.scrollIndicatorInsets.bottom = 0
+    }
+    
+    // MARK: - Toast 表示
+    func showCopyToast() {
+        toastLabel?.removeFromSuperview()
+        let label = UILabel()
+        label.text = "コピーしました"
+        label.textColor = .white
+        label.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        label.textAlignment = .center
+        label.layer.cornerRadius = 8
+        label.clipsToBounds = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        toastLabel = label
         
-        didSave = true
-        await MainActor.run { dismiss() }
-    }
-    
-    // MARK: - キーボード監視
-    private func startKeyboardObserver() {
-        keyboardWillShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
-            .compactMap { $0.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect }
-            .map { $0.height }
-            .sink { height in withAnimation { self.keyboardHeight = height } }
-        keyboardWillHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
-            .sink { _ in withAnimation { self.keyboardHeight = 0 } }
-    }
-    
-    private func stopKeyboardObserver() {
-        keyboardWillShow?.cancel()
-        keyboardWillHide?.cancel()
-    }
-    
-    // MARK: - キーボードを閉じる
-    private func hideKeyboard() {
-        UIApplication.shared.sendAction(
-            #selector(UIResponder.resignFirstResponder),
-            to: nil, from: nil, for: nil
-        )
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50),
+            label.widthAnchor.constraint(equalToConstant: 150),
+            label.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
+        UIView.animate(withDuration: 0.3, animations: {
+            label.alpha = 1
+        }) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                UIView.animate(withDuration: 0.3, animations: {
+                    label.alpha = 0
+                }, completion: { _ in
+                    label.removeFromSuperview()
+                })
+            }
+        }
     }
 }
