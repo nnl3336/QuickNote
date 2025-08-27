@@ -14,6 +14,7 @@
 		18792DCA2E5D94AB0057CD9C /* AddNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DC92E5D94AB0057CD9C /* AddNoteView.swift */; };
 		18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */; };
 		18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCD2E5DA2A10057CD9C /* UIViewController .swift */; };
+		18792FBD2E5F0B680057CD9C /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +45,7 @@
 		18792DC92E5D94AB0057CD9C /* AddNoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNoteView.swift; sourceTree = "<group>"; };
 		18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditNoteView.swift; sourceTree = "<group>"; };
 		18792DCD2E5DA2A10057CD9C /* UIViewController .swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController .swift"; sourceTree = "<group>"; };
+		18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -120,6 +122,7 @@
 				184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */,
 				18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */,
 				18792DC92E5D94AB0057CD9C /* AddNoteView.swift */,
+				18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */,
 			);
 			path = "-";
 			sourceTree = "<group>";
@@ -270,6 +273,7 @@
 			files = (
 				18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */,
 				184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */,
+				18792FBD2E5F0B680057CD9C /* SwiftUIView.swift in Sources */,
 				184E9D9D2E5C7812003B03D3 /* extension.swift in Sources */,
 				184E9D9F2E5D2CC8003B03D3 /* UIViewRepresentable.swift in Sources */,
 				18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */,

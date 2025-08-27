@@ -25,28 +25,116 @@ struct ContentView: UIViewControllerRepresentable {
     }
 }
 
-class NotesViewController: UITableViewController, UISearchBarDelegate {
+class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchBarDelegate {
 
     var viewContext: NSManagedObjectContext!
     var notes: [Note] = []
     var filteredNotes: [Note] = []
 
+    let tableView = UITableView()
     let searchBar = UISearchBar()
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .systemBackground
         self.title = "メモ一覧"
 
-        // 検索バーをナビゲーションに追加
+        // 検索バー
         searchBar.placeholder = "検索"
         searchBar.delegate = self
         navigationItem.titleView = searchBar
 
-        // UITableView セル登録
+        // テーブルビュー
+        tableView.delegate = self
+        tableView.dataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(tableView)
 
-        // データ読み込み
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        // 右下ボタン
+        setupFloatingButton()
+        
+        // ツールバー表示
+            self.navigationController?.isToolbarHidden = false
+            let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNote))
+            let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+            self.toolbarItems = [flexibleSpace, addButton]
+
         fetchNotes()
+    }
+
+    private func setupFloatingButton() {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(UIImage(systemName: "plus"), for: .normal)
+        button.tintColor = .white
+        button.backgroundColor = view.tintColor
+        button.layer.cornerRadius = 28
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.3
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
+        button.addTarget(self, action: #selector(addNote), for: .touchUpInside)
+        view.addSubview(button)
+
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 56),
+            button.heightAnchor.constraint(equalToConstant: 56),
+            button.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+        ])
+    }
+
+    @objc private func addNote() {
+        let editorVC = NoteEditorViewController()
+        editorVC.viewContext = viewContext
+        navigationController?.pushViewController(editorVC, animated: true)
+    }
+
+    // MARK: - UITableViewDataSource / Delegate
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return filteredNotes.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let note = filteredNotes[indexPath.row]
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        var config = cell.defaultContentConfiguration()
+        config.text = note.content ?? ""
+        config.textProperties.numberOfLines = 1
+        cell.contentConfiguration = config
+        return cell
+    }
+
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let note = filteredNotes[indexPath.row]
+        let editorVC = NoteEditorViewController()
+        editorVC.note = note
+        editorVC.viewContext = viewContext
+        navigationController?.pushViewController(editorVC, animated: true)
+    }
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchText.isEmpty {
+            filteredNotes = notes
+        } else {
+            filteredNotes = notes.filter {
+                $0.content?.localizedCaseInsensitiveContains(searchText) ?? false
+            }
+        }
+        tableView.reloadData()
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
     }
 
     private func fetchNotes() {
@@ -60,62 +148,8 @@ class NotesViewController: UITableViewController, UISearchBarDelegate {
             print("Fetch failed: \(error)")
         }
     }
-
-    // MARK: - UITableViewDataSource
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return filteredNotes.count
-    }
-
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let note = filteredNotes[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        var config = cell.defaultContentConfiguration()
-        config.text = note.content ?? ""
-        if let date = note.date {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            config.secondaryText = formatter.string(from: date)
-        }
-
-        // ★ ここで1行に制限
-        config.textProperties.numberOfLines = 1
-        config.textProperties.lineBreakMode = .byTruncatingTail
-
-        cell.contentConfiguration = config
-        return cell
-    }
-
-    // MARK: - UITableViewDelegate
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        let note = filteredNotes[indexPath.row]
-        let editorVC = NoteEditorViewController()
-        editorVC.note = note
-        editorVC.viewContext = viewContext
-        navigationController?.pushViewController(editorVC, animated: true)
-    }
-
-    override func tableView(_ tableView: UITableView,
-                            commit editingStyle: UITableViewCell.EditingStyle,
-                            forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            let noteToDelete = filteredNotes[indexPath.row]
-            viewContext.delete(noteToDelete)
-            try? viewContext.save()
-            fetchNotes()
-        }
-    }
-
-    // MARK: - UISearchBarDelegate
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText.isEmpty {
-            filteredNotes = notes
-        } else {
-            filteredNotes = notes.filter { $0.content?.localizedCaseInsensitiveContains(searchText) ?? false }
-        }
-        tableView.reloadData()
-    }
 }
+
 
 
 //
