@@ -8,6 +8,25 @@
 import SwiftUI
 
 extension NSMutableAttributedString {
+    static func withLinkDetection(from attrText: NSMutableAttributedString) -> NSMutableAttributedString {
+        let text = attrText.string
+        let types: NSTextCheckingResult.CheckingType = .link
+
+        if let detector = try? NSDataDetector(types: types.rawValue) {
+            let matches = detector.matches(in: text, range: NSRange(location: 0, length: text.utf16.count))
+            for match in matches {
+                if let url = match.url {
+                    attrText.addAttribute(.link, value: url, range: match.range)
+                }
+            }
+        }
+        return attrText
+    }
+}
+
+
+/*
+extension NSMutableAttributedString {
     static func withLinkDetection(from string: String) -> NSMutableAttributedString {
         let attributed = NSMutableAttributedString(string: string)
         
@@ -28,3 +47,4 @@ extension NSMutableAttributedString {
         return attributed
     }
 }
+*/

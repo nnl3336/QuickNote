@@ -101,6 +101,7 @@
 				184E9D9C2E5C7812003B03D3 /* extension.swift */,
 				18792DCD2E5DA2A10057CD9C /* UIViewController .swift */,
 				184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */,
+				18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */,
 				18792DC82E5D94070057CD9C /* - */,
 				184E9D642E5C5B68003B03D3 /* Products */,
 			);
@@ -122,7 +123,6 @@
 				184E9D9A2E5C60B2003B03D3 /* UITextViewWrapper.swift */,
 				18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */,
 				18792DC92E5D94AB0057CD9C /* AddNoteView.swift */,
-				18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */,
 			);
 			path = "-";
 			sourceTree = "<group>";
