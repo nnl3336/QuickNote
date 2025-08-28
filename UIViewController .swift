@@ -9,12 +9,11 @@ import SwiftUI
 import CoreData
 import Combine
 
-
-class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchBarDelegate {
+class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResultsControllerDelegate {
 
     var viewContext: NSManagedObjectContext!
-    var notes: [Note] = []
-    var filteredNotes: [Note] = []
+
+    private var fetchedResultsController: NSFetchedResultsController<Note>!
 
     let tableView = UITableView()
     let searchBar = UISearchBar()
@@ -22,28 +21,28 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        self.title = "メモ一覧"
+        title = "メモ一覧"
 
-        // 検索バー
+        setupSearchBar()
+        setupTableView()
+        setupFloatingButton()
+        setupFetchedResultsController()
+    }
+
+    // MARK: - Setup
+    private func setupSearchBar() {
         searchBar.placeholder = "検索"
         searchBar.delegate = self
-        navigationItem.titleView = searchBar
         searchBar.returnKeyType = .search
+        navigationItem.titleView = searchBar
+    }
 
-
-        // ナビゲーションバー右上に追加ボタン
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .add,
-            target: self,
-            action: #selector(addNote)
-        )
-
-        // テーブルビュー
+    private func setupTableView() {
         tableView.delegate = self
-        tableView.dataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
+        tableView.keyboardDismissMode = .interactive
 
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -51,47 +50,7 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
-        
-        setupFloatingButton()
-        
-
-        fetchNotes()
     }
-    
-    // MARK: - UITableViewDelegate スワイプアクション
-    func tableView(_ tableView: UITableView,
-                   trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        
-        let deleteAction = UIContextualAction(style: .destructive, title: "削除") { [weak self] _, _, completionHandler in
-            guard let self = self else { return }
-            
-            let noteToDelete = self.filteredNotes[indexPath.row]
-            
-            // Core Data から削除
-            self.viewContext.delete(noteToDelete)
-            do {
-                try self.viewContext.save()
-                
-                // 配列からも削除
-                if let index = self.notes.firstIndex(of: noteToDelete) {
-                    self.notes.remove(at: index)
-                }
-                self.filteredNotes.remove(at: indexPath.row)
-                
-                tableView.deleteRows(at: [indexPath], with: .automatic)
-                
-            } catch {
-                print("削除エラー: \(error)")
-            }
-            
-            completionHandler(true)
-        }
-        
-        let configuration = UISwipeActionsConfiguration(actions: [deleteAction])
-        configuration.performsFirstActionWithFullSwipe = true // フルスワイプで削除可能
-        return configuration
-    }
-
 
     private func setupFloatingButton() {
         let button = UIButton(type: .system)
@@ -115,19 +74,125 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         ])
     }
 
+    private func setupFetchedResultsController() {
+        let request: NSFetchRequest<Note> = Note.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
+
+        fetchedResultsController = NSFetchedResultsController(
+            fetchRequest: request,
+            managedObjectContext: viewContext,
+            sectionNameKeyPath: nil,
+            cacheName: nil
+        )
+        fetchedResultsController.delegate = self
+
+        do {
+            try fetchedResultsController.performFetch()
+        } catch {
+            print("FRC fetch failed: \(error)")
+        }
+
+        tableView.dataSource = self
+    }
+
+    // MARK: - Add Note
     @objc private func addNote() {
         let editorVC = NoteEditorViewController()
         editorVC.viewContext = viewContext
+        editorVC.onSave = { [weak self] in
+            // 保存後は FRC が自動で反映するので reload は不要
+        }
         navigationController?.pushViewController(editorVC, animated: true)
     }
 
-    // MARK: - UITableViewDataSource / Delegate
+    // MARK: - Search
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchText.isEmpty {
+            fetchedResultsController.fetchRequest.predicate = nil
+        } else {
+            fetchedResultsController.fetchRequest.predicate = NSPredicate(format: "content CONTAINS[cd] %@", searchText)
+        }
+        do {
+            try fetchedResultsController.performFetch()
+            tableView.reloadData()
+        } catch {
+            print(error)
+        }
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+    }
+
+    // MARK: - Scroll keyboard
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        searchBar.resignFirstResponder()
+    }
+
+    // MARK: - Swipe Delete
+    func tableView(_ tableView: UITableView,
+                   trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+
+        let deleteAction = UIContextualAction(style: .destructive, title: "削除") { [weak self] _, _, completionHandler in
+            guard let self = self else { return }
+
+            let noteToDelete = self.fetchedResultsController.object(at: indexPath)
+            self.viewContext.delete(noteToDelete)
+            do {
+                try self.viewContext.save()
+            } catch {
+                print("削除エラー: \(error)")
+            }
+
+            completionHandler(true)
+        }
+
+        let configuration = UISwipeActionsConfiguration(actions: [deleteAction])
+        configuration.performsFirstActionWithFullSwipe = true
+        return configuration
+    }
+
+    // MARK: - FRC Delegate
+    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        tableView.beginUpdates()
+    }
+
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        tableView.endUpdates()
+    }
+
+    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>,
+                    didChange anObject: Any,
+                    at indexPath: IndexPath?,
+                    for type: NSFetchedResultsChangeType,
+                    newIndexPath: IndexPath?) {
+        switch type {
+        case .insert:
+            if let newIndexPath = newIndexPath { tableView.insertRows(at: [newIndexPath], with: .automatic) }
+        case .delete:
+            if let indexPath = indexPath { tableView.deleteRows(at: [indexPath], with: .automatic) }
+        case .update:
+            if let indexPath = indexPath { tableView.reloadRows(at: [indexPath], with: .automatic) }
+        case .move:
+            if let indexPath = indexPath, let newIndexPath = newIndexPath {
+                tableView.moveRow(at: indexPath, to: newIndexPath)
+            }
+        @unknown default:
+            break
+        }
+    }
+}
+
+// MARK: - UITableViewDataSource
+extension NotesViewController: UITableViewDataSource {
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return filteredNotes.count
+        fetchedResultsController.fetchedObjects?.count ?? 0
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let note = filteredNotes[indexPath.row]
+
+        let note = fetchedResultsController.object(at: indexPath)
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         var config = cell.defaultContentConfiguration()
         config.text = note.content ?? ""
@@ -135,41 +200,17 @@ class NotesViewController: UIViewController, UITableViewDelegate, UITableViewDat
         cell.contentConfiguration = config
         return cell
     }
+}
 
+// MARK: - UITableViewDelegate
+extension NotesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let note = filteredNotes[indexPath.row]
+        let note = fetchedResultsController.object(at: indexPath)
         let editorVC = NoteEditorViewController()
         editorVC.note = note
         editorVC.viewContext = viewContext
         navigationController?.pushViewController(editorVC, animated: true)
-    }
-
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText.isEmpty {
-            filteredNotes = notes
-        } else {
-            filteredNotes = notes.filter {
-                $0.content?.localizedCaseInsensitiveContains(searchText) ?? false
-            }
-        }
-        tableView.reloadData()
-    }
-
-    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-        searchBar.resignFirstResponder()
-    }
-
-    private func fetchNotes() {
-        let request: NSFetchRequest<Note> = Note.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
-        do {
-            notes = try viewContext.fetch(request)
-            filteredNotes = notes
-            tableView.reloadData()
-        } catch {
-            print("Fetch failed: \(error)")
-        }
     }
 }
 
@@ -178,6 +219,9 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
 
     var viewContext: NSManagedObjectContext!
     var note: Note?    // 編集対象ノート（nilなら新規）
+    
+    // ← これを追加
+    var onSave: (() -> Void)?
     
     private var textView: UITextView!
     private var toastLabel: UILabel?
@@ -201,34 +245,45 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         loadContent()
         
         // キーボード通知
-        NotificationCenter.default.addObserver(self,
+        /*NotificationCenter.default.addObserver(self,
                                                selector: #selector(keyboardWillShow(_:)),
                                                name: UIResponder.keyboardWillShowNotification,
                                                object: nil)
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(keyboardWillHide(_:)),
                                                name: UIResponder.keyboardWillHideNotification,
-                                               object: nil)
+                                               object: nil)*/
     }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // ナビゲーションで戻るときだけ保存
+        if self.isMovingFromParent {
+            saveNote()
+        }
+    }
+
     
     private func setupTextView() {
         textView = UITextView(frame: .zero)
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.font = UIFont.systemFont(ofSize: 20)
         textView.delegate = self
+        textView.keyboardDismissMode = .interactive
+        textView.alwaysBounceVertical = true
         
-        // キーボード上にツールバーを追加
-        let toolbar = UIToolbar()
-        toolbar.sizeToFit()
+        // 編集・選択・リンク
+        textView.isEditable = true                  // 編集可能
+        textView.isSelectable = true                // 選択可能
+        textView.dataDetectorTypes = [.link]        // リンク有効
+        textView.allowsEditingTextAttributes = true
+        textView.isScrollEnabled = true
+
         
-        // SF Symbol のコピーアイコン
-        let copyImage = UIImage(systemName: "doc.on.doc") // コピー用のアイコン
-        let copyButton = UIBarButtonItem(image: copyImage, style: .plain, target: self, action: #selector(copyText))
-        
-        let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        toolbar.items = [flexibleSpace, copyButton, flexibleSpace]
-        
-        textView.inputAccessoryView = toolbar
+
+        // キーボード上にツールバー
+        textView.inputAccessoryView = createToolbar()
         
         view.addSubview(textView)
         
@@ -236,12 +291,31 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             textView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             textView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
             textView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -8),
-            textView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            textView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
         
         loadContent()
-        textView.becomeFirstResponder()
+        
+        // 新規ノートならキーボードを出す
+        if note == nil {
+            textView.becomeFirstResponder()
+        }
     }
+    
+    
+    private func createToolbar() -> UIToolbar {
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        
+        let copyImage = UIImage(systemName: "doc.on.doc")
+        let copyButton = UIBarButtonItem(image: copyImage, style: .plain, target: self, action: #selector(copyText))
+        
+        let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        toolbar.items = [flexibleSpace, copyButton, flexibleSpace]
+        
+        return toolbar
+    }
+
 
     @objc private func copyText() {
         UIPasteboard.general.string = textView.text
