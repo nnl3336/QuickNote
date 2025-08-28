@@ -61,6 +61,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         }
     }
 
+    //***
     
     private func setupTextView() {
         textView = UITextView(frame: .zero)
@@ -99,6 +100,58 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         }
     }
     
+    //***
+    
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+        let current = NSMutableAttributedString(attributedString: textView.attributedText)
+        let normalColor = UIColor.label
+        let linkColor = UIColor.systemBlue
+        let font = UIFont.systemFont(ofSize: 20)
+        
+        // 新しい文字列を作る
+        let newAttr = NSMutableAttributedString(string: text)
+        newAttr.addAttribute(.font, value: font, range: NSRange(location: 0, length: newAttr.length))
+        newAttr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: newAttr.length))
+        
+        // URL を検出してリンク属性を付与
+        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+        detector?.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.count)) { match, _, _ in
+            if let url = match?.url, let range = match?.range {
+                newAttr.addAttribute(.link, value: url, range: range)
+                newAttr.addAttribute(.foregroundColor, value: linkColor, range: range)
+            }
+        }
+        
+        // 置き換え
+        current.replaceCharacters(in: range, with: newAttr)
+        textView.attributedText = current
+        textView.selectedRange = NSRange(location: range.location + newAttr.length, length: 0)
+        
+        return false
+    }
+
+
+    /// 入力テキスト中の URL を検出して NSMutableAttributedString にリンク属性を付与する
+    func attributedStringByDetectingLinks(in text: String, font: UIFont, textColor: UIColor, linkColor: UIColor) -> NSMutableAttributedString {
+        let attributedText = NSMutableAttributedString(string: text)
+        
+        // 全体のフォントと文字色を設定
+        attributedText.addAttribute(.font, value: font, range: NSRange(location: 0, length: attributedText.length))
+        attributedText.addAttribute(.foregroundColor, value: textColor, range: NSRange(location: 0, length: attributedText.length))
+        
+        // URL 検出
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+            detector.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.count)) { match, _, _ in
+                if let url = match?.url, let range = match?.range {
+                    attributedText.addAttribute(.link, value: url, range: range)
+                    attributedText.addAttribute(.foregroundColor, value: linkColor, range: range)
+                }
+            }
+        }
+        
+        return attributedText
+    }
+
     
     private func createToolbar() -> UIToolbar {
         let toolbar = UIToolbar()

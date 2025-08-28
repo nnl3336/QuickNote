@@ -110,19 +110,22 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         if searchText.isEmpty {
             fetchedResultsController.fetchRequest.predicate = nil
         } else {
-            // スペースで区切ったキーワードを配列に
             let keywords = searchText.components(separatedBy: " ").filter { !$0.isEmpty }
-            
-            // 各キーワードに対する部分一致の NSPredicate を作成
-            let subpredicates = keywords.map { keyword in
-                NSPredicate(format: "content CONTAINS[cd] %@", keyword)
+            guard !keywords.isEmpty else { return }
+
+            // 最初のキーワードだけ predicate 作成
+            var predicateFormat = "content CONTAINS[cd] %@"
+            var arguments: [Any] = [keywords[0]]
+
+            // 2つ目以降のキーワードに対して順番を考慮しつつ部分一致
+            for keyword in keywords.dropFirst() {
+                predicateFormat += " AND content CONTAINS[cd] %@"
+                arguments.append(keyword)
             }
-            
-            // すべてのキーワードを含む場合のみ返す → AND 条件
-            let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
-            fetchedResultsController.fetchRequest.predicate = compoundPredicate
+
+            fetchedResultsController.fetchRequest.predicate = NSPredicate(format: predicateFormat, argumentArray: arguments)
         }
-        
+
         do {
             try fetchedResultsController.performFetch()
             tableView.reloadData()
