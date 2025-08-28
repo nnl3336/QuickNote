@@ -107,47 +107,29 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
 
     // MARK: - Search
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        updateFetchResults(with: searchText)
-    }
-
-    /*func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchText.isEmpty {
             fetchedResultsController.fetchRequest.predicate = nil
         } else {
-            fetchedResultsController.fetchRequest.predicate = NSPredicate(format: "content CONTAINS[cd] %@", searchText)
+            // スペースで区切ったキーワードを配列に
+            let keywords = searchText.components(separatedBy: " ").filter { !$0.isEmpty }
+            
+            // 各キーワードに対する部分一致の NSPredicate を作成
+            let subpredicates = keywords.map { keyword in
+                NSPredicate(format: "content CONTAINS[cd] %@", keyword)
+            }
+            
+            // すべてのキーワードを含む場合のみ返す → AND 条件
+            let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: subpredicates)
+            fetchedResultsController.fetchRequest.predicate = compoundPredicate
         }
+        
         do {
             try fetchedResultsController.performFetch()
             tableView.reloadData()
         } catch {
             print(error)
         }
-    }*/
-    
-    func updateFetchResults(with searchText: String?) {
-        let request: NSFetchRequest<Note> = Note.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
-        
-        if let text = searchText, !text.isEmpty {
-            request.predicate = NSPredicate(format: "content CONTAINS[cd] %@", text)
-        }
-        
-        fetchedResultsController = NSFetchedResultsController(
-            fetchRequest: request,
-            managedObjectContext: viewContext,
-            sectionNameKeyPath: nil,
-            cacheName: nil
-        )
-        fetchedResultsController.delegate = self
-        
-        do {
-            try fetchedResultsController.performFetch()
-            tableView.reloadData()
-        } catch {
-            print("検索エラー: \(error)")
-        }
     }
-
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()

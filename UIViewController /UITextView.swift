@@ -7,6 +7,8 @@
 
 import SwiftUI
 import CoreData
+import UniformTypeIdentifiers
+
 
 // MARK: - UITextView
 class NoteEditorViewController: UIViewController, UITextViewDelegate {
@@ -112,10 +114,17 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     }
 
 
-    @objc private func copyText() {
-        UIPasteboard.general.string = textView.text
+    @objc func copyText() {
+        guard let attributed = textView.attributedText else { return }
+        let pasteboard = UIPasteboard.general
+        pasteboard.items = [[
+            UTType.plainText.identifier: attributed.string,
+            UTType.rtf.identifier: try! attributed.data(from: NSRange(location: 0, length: attributed.length),
+                                                       documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
+        ]]
         showCopyToast()
     }
+
 
     
     private func setupNavigationItems() {
