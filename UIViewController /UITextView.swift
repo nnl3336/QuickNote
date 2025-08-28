@@ -55,6 +55,8 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
+        textView.resignFirstResponder()
+        
         // ナビゲーションで戻るときだけ保存
         if self.isMovingFromParent {
             saveNote()
