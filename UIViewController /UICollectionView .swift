@@ -124,7 +124,30 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         }
     }*/
     
-    
+    func updateFetchResults(with searchText: String?) {
+        let request: NSFetchRequest<Note> = Note.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
+        
+        if let text = searchText, !text.isEmpty {
+            request.predicate = NSPredicate(format: "content CONTAINS[cd] %@", text)
+        }
+        
+        fetchedResultsController = NSFetchedResultsController(
+            fetchRequest: request,
+            managedObjectContext: viewContext,
+            sectionNameKeyPath: nil,
+            cacheName: nil
+        )
+        fetchedResultsController.delegate = self
+        
+        do {
+            try fetchedResultsController.performFetch()
+            tableView.reloadData()
+        } catch {
+            print("検索エラー: \(error)")
+        }
+    }
+
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
