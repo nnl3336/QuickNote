@@ -36,6 +36,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             self.note = newNote
         }
         
+        //ロード
         loadContent()
         
         // キーボード通知
@@ -132,7 +133,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     }
     
     private func loadContent() {
-        let normalColor = UIColor.white
+        let normalColor = UIColor.label  // ← 自動でライト/ダーク対応
         let linkColor = UIColor.systemBlue
         let font = UIFont.systemFont(ofSize: 20)
         
@@ -177,7 +178,6 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             textView.font = font
             textView.textColor = normalColor
         }
-        
     }
 
     

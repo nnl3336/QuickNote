@@ -130,27 +130,37 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     }
 
     // MARK: - Swipe Delete
+    // MARK: - Swipe Delete
     func tableView(_ tableView: UITableView,
                    trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
 
         let deleteAction = UIContextualAction(style: .destructive, title: "削除") { [weak self] _, _, completionHandler in
             guard let self = self else { return }
 
-            let noteToDelete = self.fetchedResultsController.object(at: indexPath)
-            self.viewContext.delete(noteToDelete)
-            do {
-                try self.viewContext.save()
-            } catch {
-                print("削除エラー: \(error)")
-            }
+            // アラート表示
+            let alert = UIAlertController(title: "確認", message: "このメモを削除しますか？", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel) { _ in
+                completionHandler(false) // 削除しない
+            })
+            alert.addAction(UIAlertAction(title: "削除", style: .destructive) { _ in
+                let noteToDelete = self.fetchedResultsController.object(at: indexPath)
+                self.viewContext.delete(noteToDelete)
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    print("削除エラー: \(error)")
+                }
+                completionHandler(true) // 削除完了
+            })
 
-            completionHandler(true)
+            self.present(alert, animated: true)
         }
 
         let configuration = UISwipeActionsConfiguration(actions: [deleteAction])
-        configuration.performsFirstActionWithFullSwipe = true
+        configuration.performsFirstActionWithFullSwipe = false // ← フルスワイプで即削除されないようにする
         return configuration
     }
+
 
     // MARK: - FRC Delegate
     func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
