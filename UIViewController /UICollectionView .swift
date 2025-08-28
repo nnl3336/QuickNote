@@ -17,8 +17,6 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
 
     let tableView = UITableView()
     let searchBar = UISearchBar()
-    
-    private var searchWorkItem: DispatchWorkItem?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -109,31 +107,24 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
 
     // MARK: - Search
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        // 以前の検索リクエストをキャンセル
-        searchWorkItem?.cancel()
-        
-        // 新しい検索タスクを作成
-        let task = DispatchWorkItem { [weak self] in
-            guard let self = self else { return }
-            if searchText.isEmpty {
-                self.fetchedResultsController.fetchRequest.predicate = nil
-            } else {
-                self.fetchedResultsController.fetchRequest.predicate =
-                    NSPredicate(format: "content CONTAINS[cd] %@", searchText)
-            }
-            do {
-                try self.fetchedResultsController.performFetch()
-                self.tableView.reloadData()
-            } catch {
-                print(error)
-            }
-        }
-        
-        searchWorkItem = task
-        // 0.3秒後に実行（入力が続いたらキャンセルされる）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: task)
+        updateFetchResults(with: searchText)
     }
 
+    /*func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchText.isEmpty {
+            fetchedResultsController.fetchRequest.predicate = nil
+        } else {
+            fetchedResultsController.fetchRequest.predicate = NSPredicate(format: "content CONTAINS[cd] %@", searchText)
+        }
+        do {
+            try fetchedResultsController.performFetch()
+            tableView.reloadData()
+        } catch {
+            print(error)
+        }
+    }*/
+    
+    
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
