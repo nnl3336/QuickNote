@@ -15,6 +15,8 @@
 		18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */; };
 		18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCD2E5DA2A10057CD9C /* UIViewController .swift */; };
 		18792FBD2E5F0B680057CD9C /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */; };
+		18792FC02E6028760057CD9C /* UITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792FBF2E6028760057CD9C /* UITextView.swift */; };
+		18792FC22E6028CF0057CD9C /* UICollectionView .swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792FC12E6028CF0057CD9C /* UICollectionView .swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +48,8 @@
 		18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditNoteView.swift; sourceTree = "<group>"; };
 		18792DCD2E5DA2A10057CD9C /* UIViewController .swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController .swift"; sourceTree = "<group>"; };
 		18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
+		18792FBF2E6028760057CD9C /* UITextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITextView.swift; sourceTree = "<group>"; };
+		18792FC12E6028CF0057CD9C /* UICollectionView .swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UICollectionView .swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -94,6 +98,7 @@
 		184E9D5A2E5C5B68003B03D3 = {
 			isa = PBXGroup;
 			children = (
+				18792FBE2E6028580057CD9C /* UIViewController  */,
 				184E9D652E5C5B68003B03D3 /* QuickNote */,
 				184E9D7C2E5C5B6A003B03D3 /* QuickNoteTests */,
 				184E9D862E5C5B6A003B03D3 /* QuickNoteUITests */,
@@ -125,6 +130,15 @@
 				18792DC92E5D94AB0057CD9C /* AddNoteView.swift */,
 			);
 			path = "-";
+			sourceTree = "<group>";
+		};
+		18792FBE2E6028580057CD9C /* UIViewController  */ = {
+			isa = PBXGroup;
+			children = (
+				18792FBF2E6028760057CD9C /* UITextView.swift */,
+				18792FC12E6028CF0057CD9C /* UICollectionView .swift */,
+			);
+			path = "UIViewController ";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -272,11 +286,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */,
+				18792FC02E6028760057CD9C /* UITextView.swift in Sources */,
 				184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */,
 				18792FBD2E5F0B680057CD9C /* SwiftUIView.swift in Sources */,
 				184E9D9D2E5C7812003B03D3 /* extension.swift in Sources */,
 				184E9D9F2E5D2CC8003B03D3 /* UIViewRepresentable.swift in Sources */,
 				18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */,
+				18792FC22E6028CF0057CD9C /* UICollectionView .swift in Sources */,
 				18792DCA2E5D94AB0057CD9C /* AddNoteView.swift in Sources */,
 				184E9D6E2E5C5B68003B03D3 /* ContentView.swift in Sources */,
 			);
