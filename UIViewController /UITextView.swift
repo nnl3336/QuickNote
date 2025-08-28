@@ -183,9 +183,47 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     
     
     @objc private func saveTapped() {
+        view.endEditing(true)  // キーボードを閉じる
         saveNote()
-        navigationController?.popViewController(animated: true)
+        showSaveToast()        // ← 保存完了トーストを表示
+        //navigationController?.popViewController(animated: true)
     }
+
+    func showSaveToast() {
+        toastLabel?.removeFromSuperview()
+        let label = UILabel()
+        label.text = "保存しました"
+        label.textColor = .white
+        label.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        label.textAlignment = .center
+        label.layer.cornerRadius = 8
+        label.clipsToBounds = true
+        label.alpha = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        toastLabel = label
+        
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50),
+            label.widthAnchor.constraint(equalToConstant: 150),
+            label.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
+        UIView.animate(withDuration: 0.3, animations: {
+            label.alpha = 1
+        }) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                UIView.animate(withDuration: 0.3, animations: {
+                    label.alpha = 0
+                }, completion: { _ in
+                    label.removeFromSuperview()
+                })
+            }
+        }
+    }
+
+
     
     private func saveNote() {
         guard let note = note else { return }
