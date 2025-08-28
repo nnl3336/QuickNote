@@ -178,12 +178,6 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             textView.textColor = normalColor
         }
         
-        // UITextView の設定
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.dataDetectorTypes = [.link]
-        textView.allowsEditingTextAttributes = false
-        textView.isScrollEnabled = true
     }
 
     
@@ -204,8 +198,14 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             }
         } else {
             note.content = trimmed
-            note.attributedContent = try? textView.attributedText.data(
-                from: NSRange(location: 0, length: textView.attributedText.length),
+            
+            // 現在のテキストにリンク検出をして属性を付与
+            let mutableAttr = NSMutableAttributedString(string: trimmed)
+            let linkedAttr = NSMutableAttributedString.withLinkDetection(from: mutableAttr)
+            
+            // RTFD データとして保存
+            note.attributedContent = try? linkedAttr.data(
+                from: NSRange(location: 0, length: linkedAttr.length),
                 documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
             )
             
@@ -221,6 +221,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             print("保存エラー: \(error)")
         }
     }
+
     
     // MARK: - Keyboard Handling
     @objc private func keyboardWillShow(_ notification: Notification) {
