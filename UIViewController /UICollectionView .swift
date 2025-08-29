@@ -52,6 +52,11 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         ])
     }
 
+    // 🔍ボタン
+    let searchButton = UIButton(type: .system)
+    let cancelButton = UIButton(type: .system)
+    let clearButton = UIButton(type: .system)
+
     private func setupFloatingButton() {
         // ＋ボタン
         let addButton = UIButton(type: .system)
@@ -68,7 +73,6 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         view.addSubview(addButton)
 
         // 🔍ボタン
-        let searchButton = UIButton(type: .system)
         searchButton.translatesAutoresizingMaskIntoConstraints = false
         searchButton.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
         searchButton.tintColor = .white
@@ -78,23 +82,82 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         searchButton.layer.shadowOpacity = 0.3
         searchButton.layer.shadowOffset = CGSize(width: 0, height: 2)
         searchButton.layer.shadowRadius = 4
-        searchButton.addTarget(self, action: #selector(toggleSearchBar), for: .touchUpInside)
+        searchButton.addTarget(self, action: #selector(showSearchButtons), for: .touchUpInside)
         view.addSubview(searchButton)
 
-        // AutoLayout
         NSLayoutConstraint.activate([
-            addButton.widthAnchor.constraint(equalToConstant: 56),
-            addButton.heightAnchor.constraint(equalToConstant: 56),
-            addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-
+            // 🔍ボタン → 右下に固定
             searchButton.widthAnchor.constraint(equalToConstant: 56),
             searchButton.heightAnchor.constraint(equalToConstant: 56),
-            searchButton.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -16),
-            searchButton.bottomAnchor.constraint(equalTo: addButton.bottomAnchor)
+            searchButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            searchButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+
+            // ＋ボタン → 🔍の左に配置
+            addButton.widthAnchor.constraint(equalToConstant: 56),
+            addButton.heightAnchor.constraint(equalToConstant: 56),
+            addButton.trailingAnchor.constraint(equalTo: searchButton.leadingAnchor, constant: -16), // ← 横並び
+            addButton.bottomAnchor.constraint(equalTo: searchButton.bottomAnchor)
+        ])
+
+        // Cancel ボタン
+        setupActionButton(cancelButton, systemName: "xmark", color: .systemRed, action: #selector(cancelSearch))
+
+        // Clear ボタン
+        setupActionButton(clearButton, systemName: "trash", color: .systemGray, action: #selector(clearSearch))
+
+        cancelButton.isHidden = true
+        clearButton.isHidden = true
+    }
+
+    private func setupActionButton(_ button: UIButton, systemName: String, color: UIColor, action: Selector) {
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(UIImage(systemName: systemName), for: .normal)
+        button.tintColor = .white
+        button.backgroundColor = color
+        button.layer.cornerRadius = 28
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.3
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
+        button.addTarget(self, action: action, for: .touchUpInside)
+        view.addSubview(button)
+    }
+
+    @objc private func showSearchButtons() {
+        searchButton.isHidden = true
+        cancelButton.isHidden = false
+        clearButton.isHidden = false
+
+        NSLayoutConstraint.activate([
+            clearButton.widthAnchor.constraint(equalToConstant: 56),
+            clearButton.heightAnchor.constraint(equalToConstant: 56),
+            clearButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            clearButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+
+            cancelButton.widthAnchor.constraint(equalToConstant: 56),
+            cancelButton.heightAnchor.constraint(equalToConstant: 56),
+            cancelButton.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -16),
+            cancelButton.bottomAnchor.constraint(equalTo: clearButton.bottomAnchor)
         ])
     }
-    
+
+    @objc private func cancelSearch() {
+        // 検索バー閉じる
+        searchBar.text = ""
+        searchBar.resignFirstResponder()
+        navigationItem.titleView = nil
+        title = "メモ一覧"
+
+        cancelButton.isHidden = true
+        clearButton.isHidden = true
+        searchButton.isHidden = false
+    }
+
+    @objc private func clearSearch() {
+        searchBar.text = ""
+        searchBar.becomeFirstResponder() // 入力続行できるようにフォーカス戻す
+    }
+
     @objc private func toggleSearchBar() {
         searchBar.becomeFirstResponder()   // ← フォーカスしてすぐ入力できる
     }
