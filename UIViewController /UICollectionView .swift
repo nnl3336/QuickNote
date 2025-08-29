@@ -112,15 +112,18 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
             searchButton.heightAnchor.constraint(equalToConstant: 56),
 
             // 検索表示
-            clearButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            clearButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            clearButton.widthAnchor.constraint(equalToConstant: 56),
-            clearButton.heightAnchor.constraint(equalToConstant: 56),
-
-            cancelButton.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -16),
-            cancelButton.bottomAnchor.constraint(equalTo: clearButton.bottomAnchor),
+            // Cancel → 右端
+            cancelButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            cancelButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             cancelButton.widthAnchor.constraint(equalToConstant: 56),
-            cancelButton.heightAnchor.constraint(equalToConstant: 56)
+            cancelButton.heightAnchor.constraint(equalToConstant: 56),
+
+            // Clear → Cancel の左
+            clearButton.trailingAnchor.constraint(equalTo: cancelButton.leadingAnchor, constant: -16),
+            clearButton.bottomAnchor.constraint(equalTo: cancelButton.bottomAnchor),
+            clearButton.widthAnchor.constraint(equalToConstant: 56),
+            clearButton.heightAnchor.constraint(equalToConstant: 56)
+
         ])
     }
 
