@@ -103,47 +103,6 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     }
     
     //***
-    
-    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-        // 変換中なら何もしない
-        if textView.markedTextRange != nil {
-            return true
-        }
-        
-        // Enterや貼り付けなど確定後にだけ処理する
-        if !text.isEmpty {
-            DispatchQueue.main.async {
-                self.applyLinkAttributes(to: textView)
-            }
-        }
-        
-        return true
-    }
-
-    // リンク検出と色付けだけの関数
-    private func applyLinkAttributes(to textView: UITextView) {
-        let text = textView.text ?? ""
-        let attr = NSMutableAttributedString(string: text)
-        let normalColor = UIColor.label
-        let linkColor = UIColor.systemBlue
-        let font = UIFont.systemFont(ofSize: 20)
-        
-        attr.addAttribute(.font, value: font, range: NSRange(location: 0, length: attr.length))
-        attr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: attr.length))
-        
-        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
-            detector.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.count)) { match, _, _ in
-                if let url = match?.url, let range = match?.range {
-                    attr.addAttribute(.link, value: url, range: range)
-                    attr.addAttribute(.foregroundColor, value: linkColor, range: range)
-                }
-            }
-        }
-        
-        let selectedRange = textView.selectedRange
-        textView.attributedText = attr
-        textView.selectedRange = selectedRange
-    }
 
 
 
