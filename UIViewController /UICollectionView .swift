@@ -80,12 +80,14 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         searchButton.translatesAutoresizingMaskIntoConstraints = false
         
         cancelButton.setTitle("Cancel", for: .normal)
-        cancelButton.backgroundColor = .systemRed
+        cancelButton.setTitleColor(.white, for: .normal) // ← ここ追加
+        cancelButton.backgroundColor = .systemBlue
         cancelButton.layer.cornerRadius = 28
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
         
         clearButton.setTitle("Clear", for: .normal)
-        clearButton.backgroundColor = .systemGray
+        clearButton.setTitleColor(.white, for: .normal) // ← ここ追加
+        clearButton.backgroundColor = .systemBlue
         clearButton.layer.cornerRadius = 28
         clearButton.translatesAutoresizingMaskIntoConstraints = false
         

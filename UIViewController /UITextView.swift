@@ -23,6 +23,8 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     private var toastLabel: UILabel?
     private var didSave = false
     
+    //***
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -50,6 +52,22 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
                                                selector: #selector(keyboardWillHide(_:)),
                                                name: UIResponder.keyboardWillHideNotification,
                                                object: nil)*/
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+
+    }
+    
+    //***
+    
+    
+
+    @objc func appWillResignActive() {
+        saveNote()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -62,8 +80,6 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             saveNote()
         }
     }
-
-    //***
     
     private func setupTextView() {
         textView = UITextView(frame: .zero)
@@ -100,13 +116,6 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         if note == nil {
             textView.becomeFirstResponder()
         }
-        
-        NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(textViewDidChangeNotification(_:)),
-                name: UITextView.textDidChangeNotification,
-                object: textView
-            )
     }
     
     //***
