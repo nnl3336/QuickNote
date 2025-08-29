@@ -89,33 +89,43 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         clearButton.layer.cornerRadius = 28
         clearButton.translatesAutoresizingMaskIntoConstraints = false
         
+        addButton.addTarget(self, action: #selector(addNote), for: .touchUpInside)
+        searchButton.addTarget(self, action: #selector(toggleSearchBar), for: .touchUpInside)
+        cancelButton.addTarget(self, action: #selector(cancelSearch), for: .touchUpInside)
+        clearButton.addTarget(self, action: #selector(clearSearch), for: .touchUpInside)
+        
         // StackView 初期化
         buttonStack.axis = .horizontal
         buttonStack.spacing = 16
-        buttonStack.alignment = .center       // 中央揃えで高さを固定
-        buttonStack.distribution = .fill      // 子ボタンの高さは制約に従う
-
+        buttonStack.alignment = .center
+        buttonStack.distribution = .fill
         buttonStack.translatesAutoresizingMaskIntoConstraints = false
+
+        // ✅ ボタンを StackView に追加
         buttonStack.addArrangedSubview(searchButton)
         buttonStack.addArrangedSubview(addButton)
+        
         view.addSubview(buttonStack)
         
+        // ボタンのサイズ固定
         NSLayoutConstraint.activate([
             addButton.widthAnchor.constraint(equalToConstant: 56),
             addButton.heightAnchor.constraint(equalToConstant: 56),
-            
             searchButton.widthAnchor.constraint(equalToConstant: 56),
             searchButton.heightAnchor.constraint(equalToConstant: 56),
-            
             cancelButton.widthAnchor.constraint(equalToConstant: 56),
             cancelButton.heightAnchor.constraint(equalToConstant: 56),
-            
             clearButton.widthAnchor.constraint(equalToConstant: 56),
             clearButton.heightAnchor.constraint(equalToConstant: 56)
         ])
 
+        // StackView を右下に固定
+        NSLayoutConstraint.activate([
+            buttonStack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            buttonStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+        ])
     }
-    
+
     // 切り替え関数も viewDidLoad 内の setup から呼べます
     func showNormalButtons() {
         buttonStack.arrangedSubviews.forEach { $0.isHidden = false }
@@ -138,13 +148,23 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     @objc private func cancelSearch() {
         searchBar.text = ""              // 入力を全消し
         fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
-        // 検索バー閉じる
         searchBar.resignFirstResponder()
+
+        // StackView を通常ボタンに切り替え
+        buttonStack.arrangedSubviews.forEach { buttonStack.removeArrangedSubview($0); $0.removeFromSuperview() }
+        buttonStack.addArrangedSubview(searchButton)
+        buttonStack.addArrangedSubview(addButton)
         
-        cancelButton.isHidden = true
-        clearButton.isHidden = true
-        searchButton.isHidden = false
+        showNormalButtons() // isHidden リセット
+        
+        do {
+            try fetchedResultsController.performFetch()
+            tableView.reloadData()
+        } catch {
+            print("検索リセットエラー: \(error)")
+        }
     }
+
     
     @objc private func clearSearch() {
         searchBar.text = ""              // 入力を全消し
