@@ -10,25 +10,25 @@ import CoreData
 import Combine
 
 class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResultsControllerDelegate {
-
+    
     var viewContext: NSManagedObjectContext!
-
+    
     private var fetchedResultsController: NSFetchedResultsController<Note>!
-
+    
     let tableView = UITableView()
     let searchBar = UISearchBar()
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         title = "メモ一覧"
-
+        
         setupSearchBar()
         setupTableView()
         setupFloatingButton()
         setupFetchedResultsController()
     }
-
+    
     // MARK: - Setup
     private func setupSearchBar() {
         searchBar.placeholder = "検索"
@@ -42,14 +42,14 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         // フォーカスが当たったら Cancel と Clear ボタンを表示
         showSearchButtons()
     }
-
+    
     private func setupTableView() {
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tableView)
         tableView.keyboardDismissMode = .interactive
-
+        
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -57,123 +57,99 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
-
+    
     // 🔍ボタン
+    let addButton = UIButton(type: .system)
     let searchButton = UIButton(type: .system)
     let cancelButton = UIButton(type: .system)
     let clearButton = UIButton(type: .system)
-
+    let buttonStack = UIStackView()
+    
     private func setupFloatingButton() {
-        // ＋ボタン
-        let addButton = UIButton(type: .system)
-        addButton.translatesAutoresizingMaskIntoConstraints = false
+        // ボタンの設定
         addButton.setImage(UIImage(systemName: "plus"), for: .normal)
         addButton.tintColor = .white
-        addButton.backgroundColor = view.tintColor
+        addButton.backgroundColor = .systemBlue
         addButton.layer.cornerRadius = 28
-        addButton.layer.shadowColor = UIColor.black.cgColor
-        addButton.layer.shadowOpacity = 0.3
-        addButton.layer.shadowOffset = CGSize(width: 0, height: 2)
-        addButton.layer.shadowRadius = 4
-        addButton.addTarget(self, action: #selector(addNote), for: .touchUpInside)
-        view.addSubview(addButton)
-
-        // 🔍ボタン
-        searchButton.translatesAutoresizingMaskIntoConstraints = false
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        
         searchButton.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
         searchButton.tintColor = .white
         searchButton.backgroundColor = .systemBlue
         searchButton.layer.cornerRadius = 28
-        searchButton.layer.shadowColor = UIColor.black.cgColor
-        searchButton.layer.shadowOpacity = 0.3
-        searchButton.layer.shadowOffset = CGSize(width: 0, height: 2)
-        searchButton.layer.shadowRadius = 4
-        searchButton.addTarget(self, action: #selector(toggleSearchBar), for: .touchUpInside)
-        view.addSubview(searchButton)
+        searchButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        cancelButton.setTitle("Cancel", for: .normal)
+        cancelButton.backgroundColor = .systemRed
+        cancelButton.layer.cornerRadius = 28
+        cancelButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        clearButton.setTitle("Clear", for: .normal)
+        clearButton.backgroundColor = .systemGray
+        clearButton.layer.cornerRadius = 28
+        clearButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        // StackView 初期化
+        buttonStack.axis = .horizontal
+        buttonStack.spacing = 16
+        buttonStack.alignment = .center       // 中央揃えで高さを固定
+        buttonStack.distribution = .fill      // 子ボタンの高さは制約に従う
 
-        // Cancel ボタン
-        setupActionButton(cancelButton, systemName: "xmark", color: .systemRed, action: #selector(cancelSearch))
-        cancelButton.isHidden = true
-
-        // Clear ボタン
-        setupActionButton(clearButton, systemName: "trash", color: .systemGray, action: #selector(clearSearch))
-        clearButton.isHidden = true
-
+        buttonStack.translatesAutoresizingMaskIntoConstraints = false
+        buttonStack.addArrangedSubview(searchButton)
+        buttonStack.addArrangedSubview(addButton)
+        view.addSubview(buttonStack)
+        
         NSLayoutConstraint.activate([
-            // 通常表示
-            addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             addButton.widthAnchor.constraint(equalToConstant: 56),
             addButton.heightAnchor.constraint(equalToConstant: 56),
-
-            searchButton.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -16),
-            searchButton.bottomAnchor.constraint(equalTo: addButton.bottomAnchor),
+            
             searchButton.widthAnchor.constraint(equalToConstant: 56),
             searchButton.heightAnchor.constraint(equalToConstant: 56),
-
-            // 検索表示
-            // Cancel → 右端
-            cancelButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            cancelButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            
             cancelButton.widthAnchor.constraint(equalToConstant: 56),
             cancelButton.heightAnchor.constraint(equalToConstant: 56),
-
-            // Clear → Cancel の左
-            clearButton.trailingAnchor.constraint(equalTo: cancelButton.leadingAnchor, constant: -16),
-            clearButton.bottomAnchor.constraint(equalTo: cancelButton.bottomAnchor),
+            
             clearButton.widthAnchor.constraint(equalToConstant: 56),
             clearButton.heightAnchor.constraint(equalToConstant: 56)
-
         ])
-    }
 
-    private func setupActionButton(_ button: UIButton, systemName: String, color: UIColor, action: Selector) {
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(systemName: systemName), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = color
-        button.layer.cornerRadius = 28
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.3
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
-        button.addTarget(self, action: action, for: .touchUpInside)
-        view.addSubview(button)
     }
-
-    @objc private func showSearchButtons() {
-        searchButton.isHidden = true
+    
+    // 切り替え関数も viewDidLoad 内の setup から呼べます
+    func showNormalButtons() {
+        buttonStack.arrangedSubviews.forEach { $0.isHidden = false }
+        cancelButton.isHidden = true
+        clearButton.isHidden = true
+    }
+    
+    func showSearchButtons() {
+        buttonStack.arrangedSubviews.forEach { $0.isHidden = true }
         cancelButton.isHidden = false
         clearButton.isHidden = false
-
-        NSLayoutConstraint.activate([
-            clearButton.widthAnchor.constraint(equalToConstant: 56),
-            clearButton.heightAnchor.constraint(equalToConstant: 56),
-            clearButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            clearButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-
-            cancelButton.widthAnchor.constraint(equalToConstant: 56),
-            cancelButton.heightAnchor.constraint(equalToConstant: 56),
-            cancelButton.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -16),
-            cancelButton.bottomAnchor.constraint(equalTo: clearButton.bottomAnchor)
-        ])
+        
+        // StackView を入れ替える
+        buttonStack.arrangedSubviews.forEach { buttonStack.removeArrangedSubview($0) }
+        buttonStack.addArrangedSubview(clearButton)
+        buttonStack.addArrangedSubview(cancelButton)
     }
-
+    
+    
     @objc private func cancelSearch() {
         searchBar.text = ""              // 入力を全消し
         fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
         // 検索バー閉じる
         searchBar.resignFirstResponder()
-
+        
         cancelButton.isHidden = true
         clearButton.isHidden = true
         searchButton.isHidden = false
     }
-
+    
     @objc private func clearSearch() {
         searchBar.text = ""              // 入力を全消し
         fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
-
+        
         do {
             try fetchedResultsController.performFetch()
             tableView.reloadData()
@@ -181,18 +157,18 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
             print("検索リセットエラー: \(error)")
         }
     }
-
+    
     @objc private func toggleSearchBar() {
         searchBar.becomeFirstResponder()   // ← フォーカスしてすぐ入力できる
         showSearchButtons()
     }
-
-
-
+    
+    
+    
     private func setupFetchedResultsController() {
         let request: NSFetchRequest<Note> = Note.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
-
+        
         fetchedResultsController = NSFetchedResultsController(
             fetchRequest: request,
             managedObjectContext: viewContext,
@@ -200,16 +176,16 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
             cacheName: nil
         )
         fetchedResultsController.delegate = self
-
+        
         do {
             try fetchedResultsController.performFetch()
         } catch {
             print("FRC fetch failed: \(error)")
         }
-
+        
         tableView.dataSource = self
     }
-
+    
     // MARK: - Add Note
     @objc private func addNote() {
         let editorVC = NoteEditorViewController()
@@ -219,7 +195,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         }
         navigationController?.pushViewController(editorVC, animated: true)
     }
-
+    
     // MARK: - Search
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         if searchText.isEmpty {
@@ -227,20 +203,20 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         } else {
             let keywords = searchText.components(separatedBy: " ").filter { !$0.isEmpty }
             guard !keywords.isEmpty else { return }
-
+            
             // 最初のキーワードだけ predicate 作成
             var predicateFormat = "content CONTAINS[cd] %@"
             var arguments: [Any] = [keywords[0]]
-
+            
             // 2つ目以降のキーワードに対して順番を考慮しつつ部分一致
             for keyword in keywords.dropFirst() {
                 predicateFormat += " AND content CONTAINS[cd] %@"
                 arguments.append(keyword)
             }
-
+            
             fetchedResultsController.fetchRequest.predicate = NSPredicate(format: predicateFormat, argumentArray: arguments)
         }
-
+        
         do {
             try fetchedResultsController.performFetch()
             tableView.reloadData()
@@ -248,24 +224,24 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
             print(error)
         }
     }
-
+    
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
     }
-
+    
     // MARK: - Scroll keyboard
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         searchBar.resignFirstResponder()
     }
-
+    
     // MARK: - Swipe Delete
     // MARK: - Swipe Delete
     func tableView(_ tableView: UITableView,
                    trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-
+        
         let deleteAction = UIContextualAction(style: .destructive, title: "削除") { [weak self] _, _, completionHandler in
             guard let self = self else { return }
-
+            
             // アラート表示
             let alert = UIAlertController(title: "確認", message: "このメモを削除しますか？", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel) { _ in
@@ -281,25 +257,25 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
                 }
                 completionHandler(true) // 削除完了
             })
-
+            
             self.present(alert, animated: true)
         }
-
+        
         let configuration = UISwipeActionsConfiguration(actions: [deleteAction])
         configuration.performsFirstActionWithFullSwipe = false // ← フルスワイプで即削除されないようにする
         return configuration
     }
-
-
+    
+    
     // MARK: - FRC Delegate
     func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         tableView.beginUpdates()
     }
-
+    
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         tableView.endUpdates()
     }
-
+    
     func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>,
                     didChange anObject: Any,
                     at indexPath: IndexPath?,
