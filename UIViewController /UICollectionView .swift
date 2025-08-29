@@ -85,28 +85,39 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         searchButton.addTarget(self, action: #selector(showSearchButtons), for: .touchUpInside)
         view.addSubview(searchButton)
 
-        NSLayoutConstraint.activate([
-            // 🔍ボタン → 右下に固定
-            searchButton.widthAnchor.constraint(equalToConstant: 56),
-            searchButton.heightAnchor.constraint(equalToConstant: 56),
-            searchButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            searchButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-
-            // ＋ボタン → 🔍の左に配置
-            addButton.widthAnchor.constraint(equalToConstant: 56),
-            addButton.heightAnchor.constraint(equalToConstant: 56),
-            addButton.trailingAnchor.constraint(equalTo: searchButton.leadingAnchor, constant: -16), // ← 横並び
-            addButton.bottomAnchor.constraint(equalTo: searchButton.bottomAnchor)
-        ])
-
         // Cancel ボタン
         setupActionButton(cancelButton, systemName: "xmark", color: .systemRed, action: #selector(cancelSearch))
+        cancelButton.isHidden = true
 
         // Clear ボタン
         setupActionButton(clearButton, systemName: "trash", color: .systemGray, action: #selector(clearSearch))
-
-        cancelButton.isHidden = true
         clearButton.isHidden = true
+
+        NSLayoutConstraint.activate([
+            // 🔍ボタン → 右端
+            searchButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            searchButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            searchButton.widthAnchor.constraint(equalToConstant: 56),
+            searchButton.heightAnchor.constraint(equalToConstant: 56),
+
+            // ＋ボタン → 🔍の左
+            addButton.trailingAnchor.constraint(equalTo: searchButton.leadingAnchor, constant: -16),
+            addButton.bottomAnchor.constraint(equalTo: searchButton.bottomAnchor),
+            addButton.widthAnchor.constraint(equalToConstant: 56),
+            addButton.heightAnchor.constraint(equalToConstant: 56),
+
+            // Clear → 右端（Search ボタン押したとき表示）
+            clearButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            clearButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            clearButton.widthAnchor.constraint(equalToConstant: 56),
+            clearButton.heightAnchor.constraint(equalToConstant: 56),
+
+            // Cancel → Clear の左
+            cancelButton.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -16),
+            cancelButton.bottomAnchor.constraint(equalTo: clearButton.bottomAnchor),
+            cancelButton.widthAnchor.constraint(equalToConstant: 56),
+            cancelButton.heightAnchor.constraint(equalToConstant: 56)
+        ])
     }
 
     private func setupActionButton(_ button: UIButton, systemName: String, color: UIColor, action: Selector) {
@@ -142,11 +153,10 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     }
 
     @objc private func cancelSearch() {
+        searchBar.text = ""              // 入力を全消し
+        fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
         // 検索バー閉じる
-        searchBar.text = ""
         searchBar.resignFirstResponder()
-        navigationItem.titleView = nil
-        title = "メモ一覧"
 
         cancelButton.isHidden = true
         clearButton.isHidden = true
@@ -154,8 +164,15 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     }
 
     @objc private func clearSearch() {
-        searchBar.text = ""
-        searchBar.becomeFirstResponder() // 入力続行できるようにフォーカス戻す
+        searchBar.text = ""              // 入力を全消し
+        fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
+
+        do {
+            try fetchedResultsController.performFetch()
+            tableView.reloadData()
+        } catch {
+            print("検索リセットエラー: \(error)")
+        }
     }
 
     @objc private func toggleSearchBar() {
