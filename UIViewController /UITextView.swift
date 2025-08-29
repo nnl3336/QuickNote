@@ -100,9 +100,92 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         if note == nil {
             textView.becomeFirstResponder()
         }
+        
+        NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(textViewDidChangeNotification(_:)),
+                name: UITextView.textDidChangeNotification,
+                object: textView
+            )
     }
     
     //***
+    
+    private func applyLinkAttributes(to textView: UITextView) {
+        // 変換中はスキップ
+        guard textView.markedTextRange == nil else { return }
+
+        let text = textView.text ?? ""
+        let attr = NSMutableAttributedString(string: text)
+        let normalColor = UIColor.label
+        let linkColor = UIColor.systemBlue
+        let font = UIFont.systemFont(ofSize: 20)
+
+        attr.addAttribute(.font, value: font, range: NSRange(location: 0, length: attr.length))
+        attr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: attr.length))
+
+        // URL 検出
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+            detector.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.count)) { match, _, _ in
+                if let url = match?.url, let range = match?.range {
+                    attr.addAttribute(.link, value: url, range: range)
+                    attr.addAttribute(.foregroundColor, value: linkColor, range: range)
+                }
+            }
+        }
+
+        let selectedRange = textView.selectedRange
+        textView.attributedText = attr
+        textView.selectedRange = selectedRange
+    }
+
+    
+    @objc private func textViewDidChangeNotification(_ notification: Notification) {
+        guard let textView = notification.object as? UITextView else { return }
+        
+        // 変換中は無視
+        if textView.markedTextRange != nil { return }
+        
+        // 最後の操作がペーストかどうか判定
+        if UIPasteboard.general.hasStrings {
+            applyLinkAttributes(to: textView)
+        }
+    }
+    
+    private func applyLinkAttributesToPastedText() {
+        let text = textView.text ?? ""
+        let attr = NSMutableAttributedString(string: text)
+        let normalColor = UIColor.label
+        let linkColor = UIColor.systemBlue
+        let font = UIFont.systemFont(ofSize: 20)
+        
+        attr.addAttribute(.font, value: font, range: NSRange(location: 0, length: attr.length))
+        attr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: attr.length))
+        
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+            detector.enumerateMatches(in: text, options: [], range: NSRange(location: 0, length: text.count)) { match, _, _ in
+                if let url = match?.url, let range = match?.range {
+                    attr.addAttribute(.link, value: url, range: range)
+                    attr.addAttribute(.foregroundColor, value: linkColor, range: range)
+                }
+            }
+        }
+        
+        let selectedRange = textView.selectedRange
+        textView.attributedText = attr
+        textView.selectedRange = selectedRange
+    }
+
+    
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(paste(_:)) {
+            DispatchQueue.main.async {
+                self.applyLinkAttributesToPastedText()
+            }
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
 
 
 
