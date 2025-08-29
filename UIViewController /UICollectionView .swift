@@ -53,26 +53,53 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     }
 
     private func setupFloatingButton() {
-        let button = UIButton(type: .system)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(systemName: "plus"), for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = view.tintColor
-        button.layer.cornerRadius = 28
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.3
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowRadius = 4
-        button.addTarget(self, action: #selector(addNote), for: .touchUpInside)
-        view.addSubview(button)
+        // ＋ボタン
+        let addButton = UIButton(type: .system)
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        addButton.setImage(UIImage(systemName: "plus"), for: .normal)
+        addButton.tintColor = .white
+        addButton.backgroundColor = view.tintColor
+        addButton.layer.cornerRadius = 28
+        addButton.layer.shadowColor = UIColor.black.cgColor
+        addButton.layer.shadowOpacity = 0.3
+        addButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        addButton.layer.shadowRadius = 4
+        addButton.addTarget(self, action: #selector(addNote), for: .touchUpInside)
+        view.addSubview(addButton)
 
+        // 🔍ボタン
+        let searchButton = UIButton(type: .system)
+        searchButton.translatesAutoresizingMaskIntoConstraints = false
+        searchButton.setImage(UIImage(systemName: "magnifyingglass"), for: .normal)
+        searchButton.tintColor = .white
+        searchButton.backgroundColor = .systemBlue
+        searchButton.layer.cornerRadius = 28
+        searchButton.layer.shadowColor = UIColor.black.cgColor
+        searchButton.layer.shadowOpacity = 0.3
+        searchButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        searchButton.layer.shadowRadius = 4
+        searchButton.addTarget(self, action: #selector(toggleSearchBar), for: .touchUpInside)
+        view.addSubview(searchButton)
+
+        // AutoLayout
         NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 56),
-            button.heightAnchor.constraint(equalToConstant: 56),
-            button.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
+            addButton.widthAnchor.constraint(equalToConstant: 56),
+            addButton.heightAnchor.constraint(equalToConstant: 56),
+            addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+
+            searchButton.widthAnchor.constraint(equalToConstant: 56),
+            searchButton.heightAnchor.constraint(equalToConstant: 56),
+            searchButton.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -16),
+            searchButton.bottomAnchor.constraint(equalTo: addButton.bottomAnchor)
         ])
     }
+    
+    @objc private func toggleSearchBar() {
+        searchBar.becomeFirstResponder()   // ← フォーカスしてすぐ入力できる
+    }
+
+
 
     private func setupFetchedResultsController() {
         let request: NSFetchRequest<Note> = Note.fetchRequest()
