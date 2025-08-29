@@ -36,6 +36,12 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         searchBar.returnKeyType = .search
         navigationItem.titleView = searchBar
     }
+    
+    // MARK: - UISearchBarDelegate
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        // フォーカスが当たったら Cancel と Clear ボタンを表示
+        showSearchButtons()
+    }
 
     private func setupTableView() {
         tableView.delegate = self
@@ -82,7 +88,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         searchButton.layer.shadowOpacity = 0.3
         searchButton.layer.shadowOffset = CGSize(width: 0, height: 2)
         searchButton.layer.shadowRadius = 4
-        searchButton.addTarget(self, action: #selector(showSearchButtons), for: .touchUpInside)
+        searchButton.addTarget(self, action: #selector(toggleSearchBar), for: .touchUpInside)
         view.addSubview(searchButton)
 
         // Cancel ボタン
@@ -94,25 +100,23 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         clearButton.isHidden = true
 
         NSLayoutConstraint.activate([
-            // 🔍ボタン → 右端
-            searchButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            searchButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            searchButton.widthAnchor.constraint(equalToConstant: 56),
-            searchButton.heightAnchor.constraint(equalToConstant: 56),
-
-            // ＋ボタン → 🔍の左
-            addButton.trailingAnchor.constraint(equalTo: searchButton.leadingAnchor, constant: -16),
-            addButton.bottomAnchor.constraint(equalTo: searchButton.bottomAnchor),
+            // 通常表示
+            addButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            addButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             addButton.widthAnchor.constraint(equalToConstant: 56),
             addButton.heightAnchor.constraint(equalToConstant: 56),
 
-            // Clear → 右端（Search ボタン押したとき表示）
+            searchButton.trailingAnchor.constraint(equalTo: addButton.leadingAnchor, constant: -16),
+            searchButton.bottomAnchor.constraint(equalTo: addButton.bottomAnchor),
+            searchButton.widthAnchor.constraint(equalToConstant: 56),
+            searchButton.heightAnchor.constraint(equalToConstant: 56),
+
+            // 検索表示
             clearButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             clearButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             clearButton.widthAnchor.constraint(equalToConstant: 56),
             clearButton.heightAnchor.constraint(equalToConstant: 56),
 
-            // Cancel → Clear の左
             cancelButton.trailingAnchor.constraint(equalTo: clearButton.leadingAnchor, constant: -16),
             cancelButton.bottomAnchor.constraint(equalTo: clearButton.bottomAnchor),
             cancelButton.widthAnchor.constraint(equalToConstant: 56),
@@ -177,6 +181,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
 
     @objc private func toggleSearchBar() {
         searchBar.becomeFirstResponder()   // ← フォーカスしてすぐ入力できる
+        showSearchButtons()
     }
 
 
