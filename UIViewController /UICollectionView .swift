@@ -29,17 +29,6 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         setupFetchedResultsController()
     }
     
-    func searchBarTextDidEndEditing(_ searchBar: UISearchBar) {
-        if searchBar.text?.isEmpty ?? true {
-            // 入力が空なら通常ボタンに戻す
-            //showNormalButtons()
-        } else {
-            // 入力が残っているなら Cancel / Clear を表示したまま
-            showSearchButtons()
-        }
-    }
-
-    
     // MARK: - Setup
     private func setupSearchBar() {
         searchBar.placeholder = "検索"
@@ -147,22 +136,15 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     }
     
     func showSearchButtons() {
-        // 既存のビューを全部外す
-        buttonStack.arrangedSubviews.forEach {
-            buttonStack.removeArrangedSubview($0)
-            $0.removeFromSuperview()
-        }
-
-        // Cancel / Clear は必ず表示
+        buttonStack.arrangedSubviews.forEach { $0.isHidden = true }
+        cancelButton.isHidden = false
+        clearButton.isHidden = false
+        
+        // StackView を入れ替える
+        buttonStack.arrangedSubviews.forEach { buttonStack.removeArrangedSubview($0) }
         buttonStack.addArrangedSubview(clearButton)
         buttonStack.addArrangedSubview(cancelButton)
-
-        // 🔍 入力が残っているなら searchButton も追加
-        if let text = searchBar.text, !text.isEmpty {
-            buttonStack.addArrangedSubview(searchButton)
-        }
     }
-
     
     
     @objc private func cancelSearch() {
@@ -187,14 +169,9 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
 
     
     @objc private func clearSearch() {
-        // 1️⃣ テキストを消す
-        searchBar.text = ""
-        fetchedResultsController.fetchRequest.predicate = nil
-
-        // 2️⃣ フォーカスを戻す
-        searchBar.becomeFirstResponder()
-
-        // 3️⃣ FRC 更新してテーブル再描画
+        searchBar.text = ""              // 入力を全消し
+        fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
+        
         do {
             try fetchedResultsController.performFetch()
             tableView.reloadData()
@@ -202,7 +179,6 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
             print("検索リセットエラー: \(error)")
         }
     }
-
     
     @objc private func toggleSearchBar() {
         searchBar.becomeFirstResponder()   // ← フォーカスしてすぐ入力できる
