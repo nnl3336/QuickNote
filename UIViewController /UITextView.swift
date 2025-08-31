@@ -386,12 +386,29 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             try viewContext.save()
             didSave = true
         } catch {
-            let alert = UIAlertController(title: "エラー",
-                                          message: "保存できませんでした。ストレージ不足の可能性があります。",
-                                          preferredStyle: .alert)
+            let nsError = error as NSError
+            var message = "保存できませんでした: \(nsError.localizedDescription)"
+
+            if nsError.code == NSFileWriteOutOfSpaceError {
+                message = "ストレージ不足で保存できませんでした。"
+            }
+
+            let alert = UIAlertController(
+                title: "エラー",
+                message: message,
+                preferredStyle: .alert
+            )
             alert.addAction(UIAlertAction(title: "OK", style: .default))
-            UIApplication.shared.windows.first?.rootViewController?.present(alert, animated: true)
+
+            // 最前面のViewControllerを取得して表示
+            if let rootVC = UIApplication.shared.connectedScenes
+                .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
+                .first?.rootViewController {
+                
+                rootVC.present(alert, animated: true)
+            }
         }
+
 
     }
 
