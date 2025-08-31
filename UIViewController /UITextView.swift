@@ -357,37 +357,42 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     
     private func saveNote() {
         guard let note = note else { return }
-        
-        let trimmed = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if trimmed.isEmpty {
+
+        let textToSave = textView.text ?? ""
+
+        if textToSave.isEmpty {
             if viewContext.registeredObjects.contains(note) {
                 viewContext.delete(note)
             }
         } else {
-            note.content = trimmed
-            
-            // 現在のテキストにリンク検出をして属性を付与
-            let mutableAttr = NSMutableAttributedString(string: trimmed)
+            note.content = textToSave  // 前後の改行・スペースもそのまま保存
+
+            // リンク検出と属性付与
+            let mutableAttr = NSMutableAttributedString(string: textToSave)
             let linkedAttr = NSMutableAttributedString.withLinkDetection(from: mutableAttr)
-            
+
             // RTFD データとして保存
             note.attributedContent = try? linkedAttr.data(
                 from: NSRange(location: 0, length: linkedAttr.length),
                 documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
             )
-            
+
             if note.date == nil {
                 note.date = Date()
             }
         }
-        
+
         do {
             try viewContext.save()
             didSave = true
         } catch {
-            print("保存エラー: \(error)")
+            let alert = UIAlertController(title: "エラー",
+                                          message: "保存できませんでした。ストレージ不足の可能性があります。",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            UIApplication.shared.windows.first?.rootViewController?.present(alert, animated: true)
         }
+
     }
 
     
