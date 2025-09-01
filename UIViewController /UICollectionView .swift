@@ -40,7 +40,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         }
     }
     
-    // MARK: - Context Menu（長押しで複製）コンテキ　.contextMenu
+    // MARK: - Context Menu（長押しで複製）コンテキ　.contextMenu　コンテキスト
     func tableView(_ tableView: UITableView,
                    contextMenuConfigurationForRowAt indexPath: IndexPath,
                    point: CGPoint) -> UIContextMenuConfiguration? {
@@ -52,18 +52,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
                 self.duplicate(note: note)
             }
             
-            let deleteAction = UIAction(title: "削除", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-                guard let self = self else { return }
-                let noteToDelete = self.fetchedResultsController.object(at: indexPath)
-                self.viewContext.delete(noteToDelete)
-                do {
-                    try self.viewContext.save()
-                } catch {
-                    print("削除エラー: \(error)")
-                }
-            }
-            
-            return UIMenu(title: "", children: [duplicateAction, deleteAction])
+            return UIMenu(title: "", children: [duplicateAction])
         }
         
         return configuration
