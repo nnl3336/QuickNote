@@ -17,6 +17,7 @@
 		18792FBD2E5F0B680057CD9C /* SwiftUIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */; };
 		18792FC02E6028760057CD9C /* UITextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792FBF2E6028760057CD9C /* UITextView.swift */; };
 		18792FC22E6028CF0057CD9C /* UICollectionView .swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792FC12E6028CF0057CD9C /* UICollectionView .swift */; };
+		1893CB102E6581720082F8B6 /* Utility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1893CB0F2E6581720082F8B6 /* Utility.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +51,7 @@
 		18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIView.swift; sourceTree = "<group>"; };
 		18792FBF2E6028760057CD9C /* UITextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITextView.swift; sourceTree = "<group>"; };
 		18792FC12E6028CF0057CD9C /* UICollectionView .swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UICollectionView .swift"; sourceTree = "<group>"; };
+		1893CB0F2E6581720082F8B6 /* Utility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utility.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -98,12 +100,12 @@
 		184E9D5A2E5C5B68003B03D3 = {
 			isa = PBXGroup;
 			children = (
+				1893CB0C2E65810B0082F8B6 /* Others */,
 				18792FBE2E6028580057CD9C /* UIViewController  */,
 				184E9D652E5C5B68003B03D3 /* QuickNote */,
 				184E9D7C2E5C5B6A003B03D3 /* QuickNoteTests */,
 				184E9D862E5C5B6A003B03D3 /* QuickNoteUITests */,
 				184E9D6D2E5C5B68003B03D3 /* ContentView.swift */,
-				184E9D9C2E5C7812003B03D3 /* extension.swift */,
 				18792DCD2E5DA2A10057CD9C /* UIViewController .swift */,
 				184E9D9E2E5D2CC8003B03D3 /* UIViewRepresentable.swift */,
 				18792FBC2E5F0B680057CD9C /* SwiftUIView.swift */,
@@ -139,6 +141,15 @@
 				18792FC12E6028CF0057CD9C /* UICollectionView .swift */,
 			);
 			path = "UIViewController ";
+			sourceTree = "<group>";
+		};
+		1893CB0C2E65810B0082F8B6 /* Others */ = {
+			isa = PBXGroup;
+			children = (
+				184E9D9C2E5C7812003B03D3 /* extension.swift */,
+				1893CB0F2E6581720082F8B6 /* Utility.swift */,
+			);
+			path = Others;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -285,6 +296,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1893CB102E6581720082F8B6 /* Utility.swift in Sources */,
 				18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */,
 				18792FC02E6028760057CD9C /* UITextView.swift in Sources */,
 				184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */,

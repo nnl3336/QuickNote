@@ -9,22 +9,14 @@ import SwiftUI
 import CoreData
 import Combine
 
-class NotesViewController: UIViewController, UISearchBarDelegate {
-
+class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResultsControllerDelegate {
+    
     var viewContext: NSManagedObjectContext!
     
     private var fetchedResultsController: NSFetchedResultsController<Note>!
-    private var dataSource: UITableViewDiffableDataSource<Int, NSManagedObjectID>!
     
     let tableView = UITableView()
     let searchBar = UISearchBar()
-    
-    // 🔍ボタン
-    let addButton = UIButton(type: .system)
-    let searchButton = UIButton(type: .system)
-    let cancelButton = UIButton(type: .system)
-    let clearButton = UIButton(type: .system)
-    let buttonStack = UIStackView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -35,50 +27,84 @@ class NotesViewController: UIViewController, UISearchBarDelegate {
         setupTableView()
         setupFloatingButton()
         setupFetchedResultsController()
-        applySnapshot()
     }
     
-    // MARK: - Cancel / Clear 検索
-    @objc private func cancelSearch() {
-        searchBar.text = ""
-        fetchedResultsController.fetchRequest.predicate = nil
-        searchBar.resignFirstResponder()
-        
+    private func duplicate(note: Note) {
+        let newNote = Note(context: viewContext)
+        newNote.content = note.content
+        newNote.date = Date() // 現在日時にする
         do {
-            try fetchedResultsController.performFetch()
-            applySnapshot()
+            try viewContext.save()
         } catch {
-            print("検索リセットエラー: \(error)")
+            print("複製エラー: \(error)")
         }
     }
+    
+    // MARK: - Context Menu（長押しで複製）コンテキ　.contextMenu
+    func tableView(_ tableView: UITableView,
+                   contextMenuConfigurationForRowAt indexPath: IndexPath,
+                   point: CGPoint) -> UIContextMenuConfiguration? {
 
-    @objc private func clearSearch() {
-        searchBar.text = ""
-        fetchedResultsController.fetchRequest.predicate = nil
-        
-        do {
-            try fetchedResultsController.performFetch()
-            applySnapshot()
-        } catch {
-            print("検索リセットエラー: \(error)")
+        let configuration = UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+            let duplicateAction = UIAction(title: "複製", image: UIImage(systemName: "doc.on.doc")) { [weak self] _ in
+                guard let self = self else { return }
+                let note = self.fetchedResultsController.object(at: indexPath)
+                self.duplicate(note: note)
+            }
+            
+            let deleteAction = UIAction(title: "削除", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
+                guard let self = self else { return }
+                let noteToDelete = self.fetchedResultsController.object(at: indexPath)
+                self.viewContext.delete(noteToDelete)
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    print("削除エラー: \(error)")
+                }
+            }
+            
+            return UIMenu(title: "", children: [duplicateAction, deleteAction])
         }
+        
+        return configuration
     }
 
-    @objc private func toggleSearchBar() {
-        searchBar.becomeFirstResponder()   // ← フォーカスしてすぐ入力できる
+    
+    // MARK: - Setup
+    private func setupSearchBar() {
+        searchBar.placeholder = "検索"
+        searchBar.delegate = self
+        searchBar.returnKeyType = .search
+        navigationItem.titleView = searchBar
+    }
+    
+    // MARK: - UISearchBarDelegate
+    func searchBarTextDidBeginEditing(_ searchBar: UISearchBar) {
+        // フォーカスが当たったら Cancel と Clear ボタンを表示
         showSearchButtons()
     }
     
-    func showSearchButtons() {
-        buttonStack.arrangedSubviews.forEach { $0.isHidden = true }
-        cancelButton.isHidden = false
-        clearButton.isHidden = false
+    private func setupTableView() {
+        tableView.delegate = self
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(tableView)
+        tableView.keyboardDismissMode = .interactive
         
-        // StackView を入れ替える
-        buttonStack.arrangedSubviews.forEach { buttonStack.removeArrangedSubview($0) }
-        buttonStack.addArrangedSubview(clearButton)
-        buttonStack.addArrangedSubview(cancelButton)
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
     }
+    
+    // 🔍ボタン
+    let addButton = UIButton(type: .system)
+    let searchButton = UIButton(type: .system)
+    let cancelButton = UIButton(type: .system)
+    let clearButton = UIButton(type: .system)
+    let buttonStack = UIStackView()
     
     private func setupFloatingButton() {
         // ボタンの設定
@@ -142,49 +168,66 @@ class NotesViewController: UIViewController, UISearchBarDelegate {
             buttonStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
     }
-    
-    // MARK: - Setup SearchBar
-    private func setupSearchBar() {
-        searchBar.placeholder = "検索"
-        searchBar.delegate = self
-        searchBar.returnKeyType = .search
-        navigationItem.titleView = searchBar
+
+    // 切り替え関数も viewDidLoad 内の setup から呼べます
+    func showNormalButtons() {
+        buttonStack.arrangedSubviews.forEach { $0.isHidden = false }
+        cancelButton.isHidden = true
+        clearButton.isHidden = true
     }
     
-    // MARK: - Setup TableView
-    private func setupTableView() {
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.keyboardDismissMode = .interactive
-        view.addSubview(tableView)
+    func showSearchButtons() {
+        buttonStack.arrangedSubviews.forEach { $0.isHidden = true }
+        cancelButton.isHidden = false
+        clearButton.isHidden = false
         
-        NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
+        // StackView を入れ替える
+        buttonStack.arrangedSubviews.forEach { buttonStack.removeArrangedSubview($0) }
+        buttonStack.addArrangedSubview(clearButton)
+        buttonStack.addArrangedSubview(cancelButton)
+    }
+    
+    
+    @objc private func cancelSearch() {
+        searchBar.text = ""              // 入力を全消し
+        fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
+        searchBar.resignFirstResponder()
+
+        // StackView を通常ボタンに切り替え
+        buttonStack.arrangedSubviews.forEach { buttonStack.removeArrangedSubview($0); $0.removeFromSuperview() }
+        buttonStack.addArrangedSubview(searchButton)
+        buttonStack.addArrangedSubview(addButton)
         
-        // DiffableDataSource 設定
-        dataSource = UITableViewDiffableDataSource<Int, NSManagedObjectID>(tableView: tableView) { [weak self] tableView, indexPath, objectID in
-            guard let self = self else { return UITableViewCell() }
-            let note = try? self.viewContext.existingObject(with: objectID) as? Note
-            
-            let cell = tableView.dequeueReusableCell(withIdentifier: "cell")
-            ?? UITableViewCell(style: .subtitle, reuseIdentifier: "cell")
-            
-            var config = cell.defaultContentConfiguration()
-            config.text = note?.content ?? ""
-            config.textProperties.numberOfLines = 1
-            cell.contentConfiguration = config
-            
-            return cell
+        showNormalButtons() // isHidden リセット
+        
+        do {
+            try fetchedResultsController.performFetch()
+            tableView.reloadData()
+        } catch {
+            print("検索リセットエラー: \(error)")
         }
+    }
+
+    
+    @objc private func clearSearch() {
+        searchBar.text = ""              // 入力を全消し
+        fetchedResultsController.fetchRequest.predicate = nil // 検索条件をリセット
         
-        tableView.delegate = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        do {
+            try fetchedResultsController.performFetch()
+            tableView.reloadData()
+        } catch {
+            print("検索リセットエラー: \(error)")
+        }
     }
     
-    // MARK: - Setup FRC
+    @objc private func toggleSearchBar() {
+        searchBar.becomeFirstResponder()   // ← フォーカスしてすぐ入力できる
+        showSearchButtons()
+    }
+    
+    
+    
     private func setupFetchedResultsController() {
         let request: NSFetchRequest<Note> = Note.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Note.date, ascending: false)]
@@ -202,16 +245,8 @@ class NotesViewController: UIViewController, UISearchBarDelegate {
         } catch {
             print("FRC fetch failed: \(error)")
         }
-    }
-    
-    // MARK: - Snapshot適用
-    private func applySnapshot(animatingDifferences: Bool = true) {
-        var snapshot = NSDiffableDataSourceSnapshot<Int, NSManagedObjectID>()
-        snapshot.appendSections([0])
-        if let objects = fetchedResultsController.fetchedObjects {
-            snapshot.appendItems(objects.map { $0.objectID })
-        }
-        dataSource.apply(snapshot, animatingDifferences: animatingDifferences)
+        
+        tableView.dataSource = self
     }
     
     // MARK: - Add Note
@@ -219,7 +254,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate {
         let editorVC = NoteEditorViewController()
         editorVC.viewContext = viewContext
         editorVC.onSave = { [weak self] in
-            // FRC が自動で検知して snapshot 更新
+            // 保存後は FRC が自動で反映するので reload は不要
         }
         navigationController?.pushViewController(editorVC, animated: true)
     }
@@ -232,8 +267,11 @@ class NotesViewController: UIViewController, UISearchBarDelegate {
             let keywords = searchText.components(separatedBy: " ").filter { !$0.isEmpty }
             guard !keywords.isEmpty else { return }
             
+            // 最初のキーワードだけ predicate 作成
             var predicateFormat = "content CONTAINS[cd] %@"
             var arguments: [Any] = [keywords[0]]
+            
+            // 2つ目以降のキーワードに対して順番を考慮しつつ部分一致
             for keyword in keywords.dropFirst() {
                 predicateFormat += " AND content CONTAINS[cd] %@"
                 arguments.append(keyword)
@@ -244,7 +282,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate {
         
         do {
             try fetchedResultsController.performFetch()
-            applySnapshot()
+            tableView.reloadData()
         } catch {
             print(error)
         }
@@ -254,56 +292,72 @@ class NotesViewController: UIViewController, UISearchBarDelegate {
         searchBar.resignFirstResponder()
     }
     
+    // MARK: - Scroll keyboard
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         searchBar.resignFirstResponder()
     }
     
     // MARK: - Swipe Delete
+    // MARK: - Swipe Delete
     func tableView(_ tableView: UITableView,
                    trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         
-        guard let objectID = dataSource.itemIdentifier(for: indexPath),
-              let noteToDelete = try? viewContext.existingObject(with: objectID) as? Note else {
-            return nil
-        }
-        
         let deleteAction = UIContextualAction(style: .destructive, title: "削除") { [weak self] _, _, completionHandler in
             guard let self = self else { return }
+            
+            // アラート表示
             let alert = UIAlertController(title: "確認", message: "このメモを削除しますか？", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel) { _ in
-                completionHandler(false)
+                completionHandler(false) // 削除しない
             })
             alert.addAction(UIAlertAction(title: "削除", style: .destructive) { _ in
+                let noteToDelete = self.fetchedResultsController.object(at: indexPath)
                 self.viewContext.delete(noteToDelete)
-                do { try self.viewContext.save() } catch { print(error) }
-                completionHandler(true)
+                do {
+                    try self.viewContext.save()
+                } catch {
+                    print("削除エラー: \(error)")
+                }
+                completionHandler(true) // 削除完了
             })
+            
             self.present(alert, animated: true)
         }
         
         let configuration = UISwipeActionsConfiguration(actions: [deleteAction])
-        configuration.performsFirstActionWithFullSwipe = false
+        configuration.performsFirstActionWithFullSwipe = false // ← フルスワイプで即削除されないようにする
         return configuration
     }
-}
-
-// MARK: - UITableViewDelegate
-extension NotesViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        guard let objectID = dataSource.itemIdentifier(for: indexPath),
-              let note = try? viewContext.existingObject(with: objectID) as? Note else { return }
-        let editorVC = NoteEditorViewController()
-        editorVC.note = note
-        editorVC.viewContext = viewContext
-        navigationController?.pushViewController(editorVC, animated: true)
+    
+    
+    // MARK: - FRC Delegate
+    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        tableView.beginUpdates()
     }
-}
-
-// MARK: - NSFetchedResultsControllerDelegate
-extension NotesViewController: NSFetchedResultsControllerDelegate {
+    
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        applySnapshot()
+        tableView.endUpdates()
+    }
+    
+    func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>,
+                    didChange anObject: Any,
+                    at indexPath: IndexPath?,
+                    for type: NSFetchedResultsChangeType,
+                    newIndexPath: IndexPath?) {
+        switch type {
+        case .insert:
+            if let newIndexPath = newIndexPath { tableView.insertRows(at: [newIndexPath], with: .automatic) }
+        case .delete:
+            if let indexPath = indexPath { tableView.deleteRows(at: [indexPath], with: .automatic) }
+        case .update:
+            if let indexPath = indexPath { tableView.reloadRows(at: [indexPath], with: .automatic) }
+        case .move:
+            if let indexPath = indexPath, let newIndexPath = newIndexPath {
+                tableView.moveRow(at: indexPath, to: newIndexPath)
+            }
+        @unknown default:
+            break
+        }
     }
 }
 
@@ -326,7 +380,7 @@ extension NotesViewController: UITableViewDataSource {
     }
 }
 
-/*// MARK: - UITableViewDelegate
+// MARK: - UITableViewDelegate
 extension NotesViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
@@ -338,4 +392,3 @@ extension NotesViewController: UITableViewDelegate {
     }
 }
 
-*/

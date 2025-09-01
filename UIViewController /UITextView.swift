@@ -23,14 +23,13 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     private var toastLabel: UILabel?
     private var didSave = false
     
+    private var dateLabel: UILabel!
+
     //***
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        
-        setupTextView()
-        setupNavigationItems()
         
         // 新規作成の場合は Note を生成
         if note == nil {
@@ -40,18 +39,12 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             self.note = newNote
         }
         
-        //ロード
-        loadContent()
+        setupDateLabel()    // 先にラベルを作る
+        setupTextView()     // textView はここで1回だけ作る
+        setupNavigationItems()
         
-        // キーボード通知
-        /*NotificationCenter.default.addObserver(self,
-                                               selector: #selector(keyboardWillShow(_:)),
-                                               name: UIResponder.keyboardWillShowNotification,
-                                               object: nil)
-        NotificationCenter.default.addObserver(self,
-                                               selector: #selector(keyboardWillHide(_:)),
-                                               name: UIResponder.keyboardWillHideNotification,
-                                               object: nil)*/
+        //ロード
+        loadContent() 
         
         NotificationCenter.default.addObserver(
             self,
@@ -59,12 +52,39 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             name: UIApplication.willResignActiveNotification,
             object: nil
         )
-
     }
-    
+
     //***
     
+    private func updateDateLabel() {
+        if let date = note?.date {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            dateLabel.text = "作成日: \(formatter.string(from: date))"
+        } else {
+            dateLabel.text = ""
+        }
+    }
+
     
+    private func setupDateLabel() {
+        dateLabel = UILabel()
+        dateLabel.translatesAutoresizingMaskIntoConstraints = false
+        dateLabel.font = UIFont.systemFont(ofSize: 14)
+        dateLabel.textColor = .secondaryLabel
+        dateLabel.textAlignment = .center
+        
+        view.addSubview(dateLabel)
+        
+        NSLayoutConstraint.activate([
+            dateLabel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            dateLabel.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            dateLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            dateLabel.heightAnchor.constraint(equalToConstant: 20)
+        ])
+    }
+
 
     @objc func appWillResignActive() {
         saveNote()
@@ -107,8 +127,9 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             textView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             textView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 8),
             textView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -8),
-            textView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            textView.bottomAnchor.constraint(equalTo: dateLabel.topAnchor, constant: -8)
         ])
+
         
         loadContent()
         
@@ -308,6 +329,9 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             textView.font = font
             textView.textColor = normalColor
         }
+        
+        updateDateLabel()
+
     }
 
     
@@ -315,11 +339,12 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     @objc private func saveTapped() {
         view.endEditing(true)  // キーボードを閉じる
         saveNote()
-        showSaveToast()        // ← 保存完了トーストを表示
+        //showSaveToast()        // ← 保存完了トーストを表示
         //navigationController?.popViewController(animated: true)
+        Toast.showToast(message: "保存しました")
     }
 
-    func showSaveToast() {
+    /*func showSaveToast() {
         toastLabel?.removeFromSuperview()
         let label = UILabel()
         label.text = "保存しました"
@@ -351,7 +376,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
                 })
             }
         }
-    }
+    }*/
 
 
     
@@ -365,18 +390,13 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
                 viewContext.delete(note)
             }
         } else {
-            note.content = textToSave  // 前後の改行・スペースもそのまま保存
-
-            // リンク検出と属性付与
+            note.content = textToSave
             let mutableAttr = NSMutableAttributedString(string: textToSave)
             let linkedAttr = NSMutableAttributedString.withLinkDetection(from: mutableAttr)
-
-            // RTFD データとして保存
             note.attributedContent = try? linkedAttr.data(
                 from: NSRange(location: 0, length: linkedAttr.length),
                 documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
             )
-
             if note.date == nil {
                 note.date = Date()
             }
@@ -385,33 +405,17 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         do {
             try viewContext.save()
             didSave = true
+            //showToast(message: "保存しました")  // 成功時もトースト
         } catch {
             let nsError = error as NSError
             var message = "保存できませんでした: \(nsError.localizedDescription)"
-
             if nsError.code == NSFileWriteOutOfSpaceError {
                 message = "ストレージ不足で保存できませんでした。"
             }
-
-            let alert = UIAlertController(
-                title: "エラー",
-                message: message,
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-
-            // 最前面のViewControllerを取得して表示
-            if let rootVC = UIApplication.shared.connectedScenes
-                .compactMap({ ($0 as? UIWindowScene)?.keyWindow })
-                .first?.rootViewController {
-                
-                rootVC.present(alert, animated: true)
-            }
+            Toast.showToast(message: message)  // 失敗時もトースト
         }
 
-
     }
-
     
     // MARK: - Keyboard Handling
     @objc private func keyboardWillShow(_ notification: Notification) {
