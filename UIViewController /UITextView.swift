@@ -93,12 +93,15 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
-        textView.resignFirstResponder()
+        //textView.resignFirstResponder()
         
         // ナビゲーションで戻るときだけ保存
         if self.isMovingFromParent {
             saveNote()
         }
+        
+        view.endEditing(true)   // ← これでキーボードを閉じる
+        
     }
     
     private func setupTextView() {
@@ -117,6 +120,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         textView.isScrollEnabled = true
 
         
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: 8, bottom: 200, right: 8) //下に余白
 
         // キーボード上にツールバー
         textView.inputAccessoryView = createToolbar()
@@ -140,6 +144,8 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     }
     
     //***
+    
+    
     
     private func applyLinkAttributes(to textView: UITextView) {
         // 変換中はスキップ
