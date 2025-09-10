@@ -291,17 +291,18 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     }
     
     private func loadContent() {
-        let normalColor = UIColor.label  // ← 自動でライト/ダーク対応
-        let linkColor = UIColor.systemBlue
-        let font = UIFont.systemFont(ofSize: 20)
-        
+        let normalColor = UIColor.label        // システム文字色（ライト/ダーク対応）
+        let linkColor = UIColor.systemBlue     // リンク色
+        let font = UIFont.systemFont(ofSize: 20) // フォントサイズ 20
+
+        // RTFD データがある場合
         if let data = note?.attributedContent,
            let attr = try? NSAttributedString(
                 data: data,
                 options: [.documentType: NSAttributedString.DocumentType.rtfd],
                 documentAttributes: nil
            ) as? NSMutableAttributedString {
-            
+
             let linkedAttr = NSMutableAttributedString.withLinkDetection(from: attr)
             
             // 全体の文字色とフォントを設定
@@ -317,7 +318,9 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             
             textView.attributedText = linkedAttr
             
-        } else if let content = note?.content {
+        }
+        // プレーンテキストの場合
+        else if let content = note?.content {
             let attr = NSMutableAttributedString(string: content)
             let linkedAttr = NSMutableAttributedString.withLinkDetection(from: attr)
             
@@ -331,17 +334,16 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             }
             
             textView.attributedText = linkedAttr
-            
-            textView.becomeFirstResponder()
-
-        } else {
+        }
+        // データなしの場合
+        else {
             textView.text = ""
             textView.font = font
             textView.textColor = normalColor
+            textView.becomeFirstResponder() // これでキーボードが表示される
         }
         
         updateDateLabel()
-
     }
 
     
