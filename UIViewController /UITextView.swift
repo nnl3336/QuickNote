@@ -56,6 +56,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
 
     //***
     
+    
     private func updateDateLabel() {
         if let date = note?.date {
             let formatter = DateFormatter()
@@ -138,9 +139,9 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         loadContent()
         
         // 新規ノートならキーボードを出す
-        if note == nil {
+        /*if note == nil {
             textView.becomeFirstResponder()
-        }
+        }*/
     }
     
     //***
@@ -330,6 +331,9 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             }
             
             textView.attributedText = linkedAttr
+            
+            textView.becomeFirstResponder()
+
         } else {
             textView.text = ""
             textView.font = font
