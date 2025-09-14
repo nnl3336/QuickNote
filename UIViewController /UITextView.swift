@@ -32,12 +32,6 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
         view.backgroundColor = .systemBackground
         
         // 新規作成の場合は Note を生成
-        if note == nil {
-            let newNote = Note(context: viewContext)
-            newNote.id = UUID()
-            newNote.date = Date()
-            self.note = newNote
-        }
         
         setupDateLabel()    // 先にラベルを作る
         setupTextView()     // textView はここで1回だけ作る
@@ -88,7 +82,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
 
 
     @objc func appWillResignActive() {
-        saveNote()
+        saveNoteOnExit()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -289,6 +283,27 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             action: #selector(saveTapped)
         )
     }
+    
+    //ワンテンポ遅い
+    /*override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        // 新規ノートかつ textView が空ならキーボードを表示
+        if note == nil || textView.attributedText.length == 0 {
+            textView.becomeFirstResponder()
+        }
+    }*/
+    
+    //出ない
+    /*override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        if note == nil && !textView.isFirstResponder {
+            textView.becomeFirstResponder()
+        }
+    }*/
+
+
     
     private func loadContent() {
         let linkColor = UIColor.systemBlue
@@ -529,6 +544,57 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
             Toast.showToast(message: message)  // 失敗時もトースト
         }
 
+    }
+    
+    private var isCheckState: Bool = false
+    private var isLikedState: Bool = false
+
+    
+    //離脱保存
+    private func saveNoteOnExit() {
+        guard let note = note else { return }
+
+        if let attrText = textView.attributedText {
+            note.content = attrText.string
+            note.attributedContent = try? attrText.data(
+                from: NSRange(location: 0, length: attrText.length),
+                documentAttributes: [.documentType: NSAttributedString.DocumentType.rtfd]
+            )
+
+            // 画像が含まれているか判定
+            var containsImage = false
+            attrText.enumerateAttribute(.attachment, in: NSRange(location: 0, length: attrText.length)) { value, range, stop in
+                if value is NSTextAttachment {
+                    containsImage = true
+                    stop.pointee = true
+                }
+            }
+            note.isContainsImage = containsImage
+
+            if note.date == nil {
+                note.date = Date()
+            }
+        } else {
+            if viewContext.registeredObjects.contains(note) {
+                viewContext.delete(note)
+            }
+            note.isContainsImage = false
+        }
+
+        note.isLiked = isLikedState
+        note.isCheck = isCheckState
+
+        do {
+            try viewContext.save()
+            Toast.showToast(message: "離脱保存しました")
+        } catch {
+            let nsError = error as NSError
+            var message = "保存できませんでした: \(nsError.localizedDescription)"
+            if nsError.code == NSFileWriteOutOfSpaceError {
+                message = "ストレージ不足で保存できませんでした。"
+            }
+            Toast.showToast(message: message)
+        }
     }
     
     // MARK: - Keyboard Handling

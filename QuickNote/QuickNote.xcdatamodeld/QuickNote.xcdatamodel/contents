@@ -5,5 +5,8 @@
         <attribute name="content" optional="YES" attributeType="String"/>
         <attribute name="date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isCheck" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isContainsImage" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isLiked" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
     </entity>
 </model>
