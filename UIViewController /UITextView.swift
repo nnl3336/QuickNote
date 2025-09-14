@@ -291,61 +291,163 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate {
     }
     
     private func loadContent() {
-        let normalColor = UIColor.label        // システム文字色（ライト/ダーク対応）
-        let linkColor = UIColor.systemBlue     // リンク色
-        let font = UIFont.systemFont(ofSize: 20) // フォントサイズ 20
+        let linkColor = UIColor.systemBlue
+        let font = UIFont.systemFont(ofSize: 20)
+        let normalColor = UIColor.label   // ← ここで定義して使う
 
-        // RTFD データがある場合
+        let applyAttributes: (NSMutableAttributedString) -> NSMutableAttributedString = { attr in
+            // フォント & 全体色
+            attr.addAttribute(.font, value: font, range: NSRange(location: 0, length: attr.length))
+            attr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: attr.length))
+
+            // 既存リンクをリンク色に
+            attr.enumerateAttribute(.link, in: NSRange(location: 0, length: attr.length)) { value, range, _ in
+                if value != nil {
+                    attr.addAttribute(.foregroundColor, value: linkColor, range: range)
+                }
+            }
+
+            // データ検出でリンク追加
+            if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+                let matches = detector.matches(in: attr.string, options: [], range: NSRange(location: 0, length: attr.length))
+                for match in matches {
+                    if let url = match.url {
+                        if attr.attribute(.link, at: match.range.location, effectiveRange: nil) == nil {
+                            attr.addAttribute(.link, value: url, range: match.range)
+                            attr.addAttribute(.foregroundColor, value: linkColor, range: match.range)
+                        }
+                    }
+                }
+            }
+
+            // ★ ここでリンク前後にスペースを追加（非リンク化スペース）
+            attr.surroundLinksWithSpaces(normalColor: normalColor, font: font)
+
+            return attr
+        }
+
         if let data = note?.attributedContent,
-           let attr = try? NSAttributedString(
-                data: data,
-                options: [.documentType: NSAttributedString.DocumentType.rtfd],
-                documentAttributes: nil
-           ) as? NSMutableAttributedString {
+           let attr = try? NSAttributedString(data: data,
+                                              options: [.documentType: NSAttributedString.DocumentType.rtfd],
+                                              documentAttributes: nil) {
+            let mutableAttr = NSMutableAttributedString(attributedString: attr)
+            let applied = applyAttributes(mutableAttr)
+            resizeImagesIn(applied)
+            textView.attributedText = applied
+        }
 
-            let linkedAttr = NSMutableAttributedString.withLinkDetection(from: attr)
-            
-            // 全体の文字色とフォントを設定
-            linkedAttr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: linkedAttr.length))
-            linkedAttr.addAttribute(.font, value: font, range: NSRange(location: 0, length: linkedAttr.length))
-            
-            // リンク部分だけ色を青に
-            linkedAttr.enumerateAttribute(.link, in: NSRange(location: 0, length: linkedAttr.length)) { value, range, _ in
-                if value != nil {
-                    linkedAttr.addAttribute(.foregroundColor, value: linkColor, range: range)
-                }
+        if note == nil {
+            let newNote = Note(context: viewContext)
+            newNote.id = UUID()
+            newNote.date = Date()
+            self.note = newNote
+            textView.becomeFirstResponder()
+        }
+    }
+    func resizeImagesIn(_ attr: NSMutableAttributedString) {
+        let fixedWidth: CGFloat = 200
+
+        attr.enumerateAttribute(.attachment,
+                               in: NSRange(location: 0, length: attr.length)) { value, range, _ in
+            guard let attachment = value as? NSTextAttachment else { return }
+
+            // 画像を取得
+            var image: UIImage? = nil
+            if let img = attachment.image {
+                image = img
+            } else if let data = attachment.contents,
+                      let img = UIImage(data: data) {
+                image = img
+            } else if let fileWrapper = attachment.fileWrapper,
+                      let data = fileWrapper.regularFileContents,
+                      let img = UIImage(data: data) {
+                image = img
+            }
+
+            if let image = image {
+                let resized = resizedImage(image, maxWidth: fixedWidth)  // ← self 不要
+                attachment.image = resized
+                attachment.bounds = CGRect(x: 0, y: 0, width: resized.size.width, height: resized.size.height)
             }
             
-            textView.attributedText = linkedAttr
-            
         }
-        // プレーンテキストの場合
-        else if let content = note?.content {
-            let attr = NSMutableAttributedString(string: content)
-            let linkedAttr = NSMutableAttributedString.withLinkDetection(from: attr)
-            
-            linkedAttr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: linkedAttr.length))
-            linkedAttr.addAttribute(.font, value: font, range: NSRange(location: 0, length: linkedAttr.length))
-            
-            linkedAttr.enumerateAttribute(.link, in: NSRange(location: 0, length: linkedAttr.length)) { value, range, _ in
-                if value != nil {
-                    linkedAttr.addAttribute(.foregroundColor, value: linkColor, range: range)
-                }
-            }
-            
-            textView.attributedText = linkedAttr
+
+        textView.attributedText = attr
+    }
+    func resizedImage(_ image: UIImage, maxWidth: CGFloat) -> UIImage {
+        let scale = maxWidth / image.size.width
+        let newSize = CGSize(width: maxWidth, height: image.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
         }
-        // データなしの場合
-        else {
-            textView.text = ""
-            textView.font = font
-            textView.textColor = normalColor
-            textView.becomeFirstResponder() // これでキーボードが表示される
-        }
-        
-        updateDateLabel()
     }
 
+
+    //ペースト
+    
+    func textPasteConfigurationSupporting(_ textPasteConfigurationSupporting: UITextPasteConfigurationSupporting,
+                                          transform item: UITextPasteItem) {
+
+        let normalColor: UIColor = traitCollection.userInterfaceStyle == .dark ? .white : .black
+        let linkColor = UIColor.systemBlue
+        let font = UIFont.systemFont(ofSize: 20)
+
+        func cleanInvisibleLinks(_ attr: NSMutableAttributedString) {
+            let fullRange = NSRange(location: 0, length: attr.length)
+            attr.enumerateAttribute(.link, in: fullRange) { value, range, _ in
+                guard value != nil else { return }
+                let substring = attr.attributedSubstring(from: range).string
+                if substring.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    attr.removeAttribute(.link, range: range)
+                }
+            }
+        }
+
+        func processAttributedString(_ mutable: NSMutableAttributedString) -> NSMutableAttributedString {
+            let linkedAttr = NSMutableAttributedString.withLinkDetection(from: mutable)
+
+            linkedAttr.addAttribute(.font, value: font, range: NSRange(location: 0, length: linkedAttr.length))
+            linkedAttr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: linkedAttr.length))
+
+            linkedAttr.enumerateAttribute(.link, in: NSRange(location: 0, length: linkedAttr.length)) { value, range, _ in
+                if value != nil {
+                    linkedAttr.addAttribute(.foregroundColor, value: linkColor, range: range)
+                }
+            }
+
+
+            // ★ リンクの前後にスペースを挿入（非リンク属性付き）
+            linkedAttr.surroundLinksWithSpaces(normalColor: normalColor, font: font)
+
+            return linkedAttr
+        }
+
+
+        if item.itemProvider.canLoadObject(ofClass: NSAttributedString.self) {
+            item.itemProvider.loadObject(ofClass: NSAttributedString.self) { object, error in
+                if let attr = object as? NSAttributedString {
+                    let mutable = NSMutableAttributedString(attributedString: attr)
+                    let resultAttr = processAttributedString(mutable)
+                    DispatchQueue.main.async {
+                        item.setResult(attributedString: resultAttr)
+                    }
+                }
+            }
+        } else if item.itemProvider.canLoadObject(ofClass: String.self) {
+            item.itemProvider.loadObject(ofClass: String.self) { object, error in
+                if let str = object as? String {
+                    let mutable = NSMutableAttributedString(string: str)
+                    let resultAttr = processAttributedString(mutable)
+                    DispatchQueue.main.async {
+                        item.setResult(attributedString: resultAttr)
+                    }
+                }
+            }
+        }
+    }
+
+    
     
     
     @objc private func saveTapped() {
