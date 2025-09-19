@@ -191,9 +191,15 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     
     
     
+    var selectedIndexPath: IndexPath?
+
+    
     // MARK: - セルタップ
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
+        
+        selectedIndexPath = indexPath
+        tableView.reloadData()
         
         // 選択中のアイテムがある場合は、遷移せず選択切り替えモードにする
         if !selectedItems.isEmpty {
@@ -524,6 +530,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         return fetchedResultsController.fetchedObjects?.count ?? 0
     }
     //セル表示
+    // クラス内に追加
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let note = fetchedResultsController.object(at: indexPath)
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
@@ -541,21 +548,19 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
             }
         }
 
+        // 選択中 or タップ中かどうかで色を変える
+        if selectedItems.contains(note) || selectedIndexPath == indexPath {
+            cell.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.3) // 透明度 30%
 
-
-        // 選択中かどうかで色を変える
-        if selectedItems.contains(note) {
-            cell.backgroundColor = UIColor.systemBlue//.withAlphaComponent(0.3)
-            cell.textLabel?.textColor = .label   // ← 黒/白 自動対応
+            cell.textLabel?.textColor = .label
         } else {
             cell.backgroundColor = .clear
             cell.textLabel?.textColor = .label
         }
         
-        
         return cell
     }
-    
+
     
     //スワイプアクション
     func tableView(_ tableView: UITableView,
