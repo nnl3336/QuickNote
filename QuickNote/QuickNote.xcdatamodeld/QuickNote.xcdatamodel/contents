@@ -7,6 +7,7 @@
         <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isCheck" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isContainsImage" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="isImageOnly" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="isLiked" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
     </entity>
 </model>
