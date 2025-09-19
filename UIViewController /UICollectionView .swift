@@ -300,7 +300,8 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     // MARK: - メニューボタン
     // ボタンでメニューの開閉を切り替え
     @objc private func menuButtonTapped() {
-        animateMenu(open: !isMenuOpen)
+        //animateMenu(open: !isMenuOpen)
+        
     }
     
     
@@ -551,7 +552,6 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
         // 選択中 or タップ中かどうかで色を変える
         if selectedItems.contains(note) || selectedIndexPath == indexPath {
             cell.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.3) // 透明度 30%
-
             cell.textLabel?.textColor = .label
         } else {
             cell.backgroundColor = .clear
@@ -796,6 +796,7 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     //虫眼鏡ボタン　検索
     @objc private func toggleSearchBar() {
         //print("新しい検索条件: \(currentFilter)")
+        //selectedIndexPath = nil
         
         searchBar.becomeFirstResponder()
         //showSearchButtons()
@@ -807,11 +808,24 @@ class NotesViewController: UIViewController, UISearchBarDelegate, NSFetchedResul
     // MARK: - Add Note
     // ノート追加ボタンの処理
     @objc private func addNote() {
+        // 更新したいセルのインデックスを一時保存
+        let oldIndexPath = selectedIndexPath
+        
+        // 選択状態をリセット
+        selectedIndexPath = nil
+        
+        // セルだけリロード
+        if let indexPath = oldIndexPath {
+            tableView.reloadRows(at: [indexPath], with: .none)
+        }
+
+        // 新規作成画面へ
         let editorVC = NoteEditorViewController()
         editorVC.viewContext = viewContext
-        editorVC.filterState = self.filterState   // ← ここで渡す
+        editorVC.filterState = self.filterState
         navigationController?.pushViewController(editorVC, animated: true)
     }
+
 }
 
 
