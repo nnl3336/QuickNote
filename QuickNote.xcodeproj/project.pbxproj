@@ -14,6 +14,8 @@
 		186B0B002E7D2FAE006F1E82 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186B0AFF2E7D2FAE006F1E82 /* SettingsView.swift */; };
 		186B0B032E7D2FEC006F1E82 /* TranslateViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186B0B022E7D2FEC006F1E82 /* TranslateViewController.swift */; };
 		186B0B052E7D303F006F1E82 /* DTO.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186B0B042E7D303F006F1E82 /* DTO.swift */; };
+		186B0B082E7D35BF006F1E82 /* FilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186B0B072E7D35BF006F1E82 /* FilterView.swift */; };
+		186B0B0A2E7D35F0006F1E82 /* Protocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186B0B092E7D35F0006F1E82 /* Protocol.swift */; };
 		18792DCA2E5D94AB0057CD9C /* AddNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DC92E5D94AB0057CD9C /* AddNoteView.swift */; };
 		18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */; };
 		18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */ = {isa = PBXBuildFile; fileRef = 18792DCD2E5DA2A10057CD9C /* UIViewController .swift */; };
@@ -51,6 +53,8 @@
 		186B0AFF2E7D2FAE006F1E82 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		186B0B022E7D2FEC006F1E82 /* TranslateViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateViewController.swift; sourceTree = "<group>"; };
 		186B0B042E7D303F006F1E82 /* DTO.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTO.swift; sourceTree = "<group>"; };
+		186B0B072E7D35BF006F1E82 /* FilterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterView.swift; sourceTree = "<group>"; };
+		186B0B092E7D35F0006F1E82 /* Protocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Protocol.swift; sourceTree = "<group>"; };
 		18792DC92E5D94AB0057CD9C /* AddNoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNoteView.swift; sourceTree = "<group>"; };
 		18792DCB2E5D94CB0057CD9C /* EditNoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditNoteView.swift; sourceTree = "<group>"; };
 		18792DCD2E5DA2A10057CD9C /* UIViewController .swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController .swift"; sourceTree = "<group>"; };
@@ -106,9 +110,10 @@
 		184E9D5A2E5C5B68003B03D3 = {
 			isa = PBXGroup;
 			children = (
-				1893CB0C2E65810B0082F8B6 /* Others */,
 				18792FBE2E6028580057CD9C /* UIViewController  */,
 				186B0B012E7D2FDB006F1E82 /* SettingsViewChildren */,
+				1893CB0C2E65810B0082F8B6 /* Others */,
+				186B0B062E7D354F006F1E82 /* New Group */,
 				184E9D652E5C5B68003B03D3 /* QuickNote */,
 				184E9D7C2E5C5B6A003B03D3 /* QuickNoteTests */,
 				184E9D862E5C5B6A003B03D3 /* QuickNoteUITests */,
@@ -139,6 +144,17 @@
 			path = SettingsViewChildren;
 			sourceTree = "<group>";
 		};
+		186B0B062E7D354F006F1E82 /* New Group */ = {
+			isa = PBXGroup;
+			children = (
+				184E9D9C2E5C7812003B03D3 /* extension.swift */,
+				186B0B092E7D35F0006F1E82 /* Protocol.swift */,
+				1893CB0F2E6581720082F8B6 /* Utility.swift */,
+				186B0B042E7D303F006F1E82 /* DTO.swift */,
+			);
+			path = "New Group";
+			sourceTree = "<group>";
+		};
 		18792DC82E5D94070057CD9C /* - */ = {
 			isa = PBXGroup;
 			children = (
@@ -162,9 +178,7 @@
 		1893CB0C2E65810B0082F8B6 /* Others */ = {
 			isa = PBXGroup;
 			children = (
-				184E9D9C2E5C7812003B03D3 /* extension.swift */,
-				1893CB0F2E6581720082F8B6 /* Utility.swift */,
-				186B0B042E7D303F006F1E82 /* DTO.swift */,
+				186B0B072E7D35BF006F1E82 /* FilterView.swift */,
 			);
 			path = Others;
 			sourceTree = "<group>";
@@ -317,10 +331,12 @@
 				1893CB102E6581720082F8B6 /* Utility.swift in Sources */,
 				18792DCC2E5D94CB0057CD9C /* EditNoteView.swift in Sources */,
 				18792FC02E6028760057CD9C /* UITextView.swift in Sources */,
+				186B0B082E7D35BF006F1E82 /* FilterView.swift in Sources */,
 				184E9D9B2E5C60B2003B03D3 /* UITextViewWrapper.swift in Sources */,
 				186B0B032E7D2FEC006F1E82 /* TranslateViewController.swift in Sources */,
 				18792FBD2E5F0B680057CD9C /* SwiftUIView.swift in Sources */,
 				184E9D9D2E5C7812003B03D3 /* extension.swift in Sources */,
+				186B0B0A2E7D35F0006F1E82 /* Protocol.swift in Sources */,
 				184E9D9F2E5D2CC8003B03D3 /* UIViewRepresentable.swift in Sources */,
 				18792DCE2E5DA2A10057CD9C /* UIViewController .swift in Sources */,
 				18792FC22E6028CF0057CD9C /* UICollectionView .swift in Sources */,

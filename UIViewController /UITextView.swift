@@ -13,6 +13,8 @@ import UniformTypeIdentifiers
 // MARK: - UITextView
 class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPasteDelegate, UITextFieldDelegate {
     
+    var filterState: FilterState = .all
+
 
     var viewContext: NSManagedObjectContext!
     var note: Note?    // 編集対象ノート（nilなら新規）
