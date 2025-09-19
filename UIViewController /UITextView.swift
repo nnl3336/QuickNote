@@ -710,7 +710,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
 
             // メニューボタンをクラスプロパティとして生成
             menuButton = UIBarButtonItem(
-                image: UIImage(systemName: "ellipsis.circle"),
+                image: UIImage(systemName: "ellipsis.circle"), 
                 style: .plain,
                 target: nil,
                 action: nil
