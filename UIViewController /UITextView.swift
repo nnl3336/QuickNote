@@ -416,46 +416,113 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
         toolbar.items = [prev, flex, searchItem, flex, next, flex, close]
         return toolbar
     }
+    // MARK: - エンター　デフォルト
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        print("Return tapped")  // ← まずこれを入れてみる
         let keyword = textField.text ?? ""
         performSearch(keyword: keyword)
-        textField.resignFirstResponder() // キーボードを閉じる
+        textField.resignFirstResponder()
         return true
     }
     
-    private var searchKeyword: String = ""
+    private var searchKeyword: String?
     private var searchResults: [NSRange] = []
     private var currentSearchIndex: Int = 0
 
     
     private func performSearch(keyword: String) {
-        print("検索キーワード:", keyword)
+        guard let attributedText = textView.attributedText else {
+            print("textView.attributedText が nil")
+            return
+        }
+
+        let appliedAttr = NSMutableAttributedString(attributedString: attributedText)
+
+        // --- 前回のハイライトをクリア ---
+        appliedAttr.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: appliedAttr.length))
+
+        guard !keyword.isEmpty else {
+            print("検索キーワードが空 → 通常表示に戻す")
+            textView.attributedText = appliedAttr
+            searchResults.removeAll()
+            currentSearchIndex = 0
+            return
+        }
 
         searchKeyword = keyword
         searchResults.removeAll()
         currentSearchIndex = 0
-        
-        let text = textView.text ?? ""
-        let attributed = NSMutableAttributedString(string: text)
-        
-        // ハイライト色
-        let highlightColor = UIColor.yellow
-        
+
+        // --- 新しいハイライトを適用 ---
+        let highlightColor = UIColor.systemBlue//.withAlphaComponent(0.6)
+        let text = appliedAttr.string
         let pattern = NSRegularExpression.escapedPattern(for: keyword)
         if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
             let range = NSRange(location: 0, length: text.utf16.count)
             regex.enumerateMatches(in: text, options: [], range: range) { match, _, _ in
                 if let matchRange = match?.range {
-                    attributed.addAttribute(.backgroundColor, value: highlightColor, range: matchRange)
-                    searchResults.append(matchRange) // 検索結果を保持
+                    appliedAttr.addAttribute(.backgroundColor, value: highlightColor, range: matchRange)
+                    searchResults.append(matchRange)
                 }
             }
         }
-        
-        textView.attributedText = attributed
-        
-        // 最初の検索結果を選択
+
+        print("検索結果件数: \(searchResults.count)")
+
+        textView.attributedText = appliedAttr
         scrollToSearchResult(index: 0)
+    }
+    private func clearHighlights() {
+        guard let attributedText = textView.attributedText else { return }
+        let appliedAttr = NSMutableAttributedString(attributedString: attributedText)
+
+        // ハイライトだけ削除
+        appliedAttr.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: appliedAttr.length))
+
+        textView.attributedText = appliedAttr
+
+        // 状態リセット
+        searchKeyword = ""
+        searchResults.removeAll()
+        currentSearchIndex = 0
+    }
+
+    
+
+    private func applyAttributes(_ attr: NSMutableAttributedString) -> NSMutableAttributedString {
+        let linkColor = UIColor.systemBlue
+        let savedSize = UserDefaults.standard.double(forKey: "fontSize")
+        let fontSize = savedSize == 0 ? 16 : CGFloat(savedSize)
+        let savedWeight = UserDefaults.standard.string(forKey: "fontWeight") ?? FontWeight.regular.rawValue
+        let fontWeight = FontWeight(rawValue: savedWeight)?.uiFontWeight ?? .regular
+        let font = UIFont.systemFont(ofSize: fontSize, weight: fontWeight)
+        let normalColor = UIColor.label
+
+        attr.addAttribute(.font, value: font, range: NSRange(location: 0, length: attr.length))
+        attr.addAttribute(.foregroundColor, value: normalColor, range: NSRange(location: 0, length: attr.length))
+
+        // 既存リンクをリンク色に
+        attr.enumerateAttribute(.link, in: NSRange(location: 0, length: attr.length)) { value, range, _ in
+            if value != nil {
+                attr.addAttribute(.foregroundColor, value: linkColor, range: range)
+            }
+        }
+
+        // データ検出でリンク追加
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+            let matches = detector.matches(in: attr.string, options: [], range: NSRange(location: 0, length: attr.length))
+            for match in matches {
+                if let url = match.url, attr.attribute(.link, at: match.range.location, effectiveRange: nil) == nil {
+                    attr.addAttribute(.link, value: url, range: match.range)
+                    attr.addAttribute(.foregroundColor, value: linkColor, range: match.range)
+                }
+            }
+        }
+
+        // リンク前後にスペース追加（拡張関数があれば）
+        attr.surroundLinksWithSpaces(normalColor: normalColor, font: font)
+
+        return attr
     }
     private func scrollToSearchResult(index: Int) {
         guard !searchResults.isEmpty else { return }
@@ -489,6 +556,8 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
 
         @objc private func closeSearch() {
             toolbarState = .default
+            
+            clearHighlights()
         }
     
 // MARK: - キーボードツールバー　通常キーボードツールバー
@@ -840,6 +909,18 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
                 }
             }
 
+            // 検索キーワードハイライト
+            if let keyword = self.searchKeyword, !keyword.isEmpty {
+                let fullText = attr.string.lowercased()
+                let lowerKeyword = keyword.lowercased()
+                var searchRange = NSRange(location: 0, length: attr.length)
+                while let foundRange = fullText.range(of: lowerKeyword, options: [], range: Range(searchRange, in: fullText)) {
+                    let nsRange = NSRange(foundRange, in: fullText)
+                    attr.addAttribute(.backgroundColor, value: UIColor.yellow, range: nsRange)
+                    searchRange = NSRange(location: nsRange.location + nsRange.length, length: attr.length - (nsRange.location + nsRange.length))
+                }
+            }
+
             // ★ リンク前後にスペース追加
             attr.surroundLinksWithSpaces(normalColor: normalColor, font: font)
 
@@ -852,11 +933,17 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
                                               documentAttributes: nil) {
             let mutableAttr = NSMutableAttributedString(attributedString: attr)
             let applied = applyAttributes(mutableAttr)
+            
+            // 検索キーワードが nil または空ならハイライトを消す
+            if searchKeyword == nil || searchKeyword?.isEmpty == true {
+                applied.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: applied.length))
+            }
+
             resizeImagesIn(applied)
             textView.attributedText = applied
         }
 
-        
+
 
 
         // メモリ上の状態に同期
