@@ -35,6 +35,19 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
        private var likeButton: UIBarButtonItem!
        private var checkButton: UIBarButtonItem!
     
+    private var toolbar: UIToolbar!
+    
+// Flexible space
+    private var flex1: UIBarButtonItem!
+    private var flex2: UIBarButtonItem!
+    private var flex3: UIBarButtonItem!
+    private var flex4: UIBarButtonItem!
+    private var flex5: UIBarButtonItem!
+    private var flex6: UIBarButtonItem!
+    
+    private var photoButton: UIBarButtonItem!
+    private var newButton: UIBarButtonItem!
+    
     //***
     
     override func viewDidLoad() {
@@ -562,7 +575,10 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
     
 // MARK: - キーボードツールバー　通常キーボードツールバー
     private func createToolbar() -> UIToolbar {
-        let toolbar = UIToolbar()
+        //let toolbar = UIToolbar()
+        if toolbar == nil {
+            toolbar = UIToolbar()
+        }
         toolbar.sizeToFit()
         
         // Copy
@@ -594,7 +610,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
         )
         
         // 新規作成ボタン
-        let newButton = UIBarButtonItem(
+        /*let newButton = UIBarButtonItem(
             image: UIImage(systemName: "plus.circle"),
             style: .plain,
             target: self,
@@ -607,15 +623,28 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
             style: .plain,
             target: self,
             action: #selector(addPhoto)
-        )
+        )*/
         
-        // Flexible spaces
+        /*// Flexible spaces
         let flex1 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         let flex2 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         let flex3 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         let flex4 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         let flex5 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        let flex6 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let flex6 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)*/
+        // Flexible spacesの初期化
+                flex1 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                flex2 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                flex3 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                flex4 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                flex5 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+                flex6 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        
+        photoButton = UIBarButtonItem(image: UIImage(systemName: "photo"), style: .plain, target: self, action: #selector(addPhoto))
+        
+                newButton = UIBarButtonItem(image: UIImage(systemName: "plus.circle"), style: .plain, target: self, action: #selector(createNew))
+                
+                
         
         toolbar.items = [
             undoButton, flex1,
@@ -630,6 +659,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
         
         return toolbar
     }
+
     @objc private func createNew() {
         print("新規作成 tapped")
         // 新規作成の処理
@@ -641,16 +671,52 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
         Toast.showToast(message: "保存しました")
     }
     func initialize() {
-        // 例: モデルの新規作成
+        // モデルの新規作成
         let newNote = Note(context: viewContext)
         textView.attributedText = NSMutableAttributedString(string: "")
         newNote.date = Date()
         newNote.isLiked = false
         newNote.isCheck = false
-        
         self.note = newNote
+        
+        // Like ❤️
+        likeButton = UIBarButtonItem(
+            image: UIImage(systemName: "heart"),
+            style: .plain,
+            target: self,
+            action: #selector(toggleLike)
+        )
+        
+        // Check ✅
+        checkButton = UIBarButtonItem(
+            image: UIImage(systemName: "checkmark.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(toggleCheck)
+        )
 
+        // Undo / Redo ボタンの初期化
+        undoButton = UIBarButtonItem(barButtonSystemItem: .undo, target: self, action: #selector(undoAction))
+        redoButton = UIBarButtonItem(barButtonSystemItem: .redo, target: self, action: #selector(redoAction))
+        
+        undoButton.isEnabled = textView.undoManager?.canUndo ?? false
+        redoButton.isEnabled = textView.undoManager?.canRedo ?? false
+        
+        // UndoManager のリセット（もし使っている場合）
+        textView.undoManager?.removeAllActions()
+        
+        toolbar.items = [
+            undoButton, flex1,
+            copyButton, flex2,
+            redoButton, flex3,
+            likeButton, flex4,
+            checkButton, flex5,
+            photoButton, flex6,
+            newButton,
+             
+        ]
     }
+
 
     @objc private func addPhoto() {
         print("写真追加 tapped")
