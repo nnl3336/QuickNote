@@ -429,7 +429,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
         toolbar.items = [prev, flex, searchItem, flex, next, flex, close]
         return toolbar
     }
-    // MARK: - エンター　デフォルト
+    // MARK: - エンター　デフォルト　スクロール
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         print("Return tapped")  // ← まずこれを入れてみる
         let keyword = textField.text ?? ""
@@ -444,18 +444,13 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
 
     
     private func performSearch(keyword: String) {
-        guard let attributedText = textView.attributedText else {
-            print("textView.attributedText が nil")
-            return
-        }
+        guard let attributedText = textView.attributedText else { return }
 
         let appliedAttr = NSMutableAttributedString(attributedString: attributedText)
-
-        // --- 前回のハイライトをクリア ---
+        
         appliedAttr.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: appliedAttr.length))
-
+        
         guard !keyword.isEmpty else {
-            print("検索キーワードが空 → 通常表示に戻す")
             textView.attributedText = appliedAttr
             searchResults.removeAll()
             currentSearchIndex = 0
@@ -465,9 +460,8 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
         searchKeyword = keyword
         searchResults.removeAll()
         currentSearchIndex = 0
-
-        // --- 新しいハイライトを適用 ---
-        let highlightColor = UIColor.systemBlue//.withAlphaComponent(0.6)
+        
+        let highlightColor = UIColor.systemBlue
         let text = appliedAttr.string
         let pattern = NSRegularExpression.escapedPattern(for: keyword)
         if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) {
@@ -480,10 +474,13 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
             }
         }
 
-        print("検索結果件数: \(searchResults.count)")
-
         textView.attributedText = appliedAttr
-        scrollToSearchResult(index: 0)
+        
+        // --- 選択を解除（遅延させる） ---
+        DispatchQueue.main.async {
+            self.textView.selectedRange = NSRange(location: 0, length: 0)
+            self.scrollToSearchResult(index: 0)
+        }
     }
     private func clearHighlights() {
         guard let attributedText = textView.attributedText else { return }
@@ -894,12 +891,28 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
         Toast.showToast(message: "アイテムを複製しました")
     }
 
-    private func searchInEditor() {
+    /*private func searchInEditor() {
         print("エディター内検索")
         // トグル
             toolbarState = (toolbarState == .default) ? .search : .default
 
         //updateToolbar()          // これで inputAccessoryView が切り替わる
+    }*/
+    private func searchInEditor() {
+        print("エディター内検索")
+        // トグル
+        toolbarState = (toolbarState == .default) ? .search : .default
+        
+        // inputAccessoryView が切り替わる場合
+        updateToolbar()
+        
+        if toolbarState == .search {
+            // キーボードを表示
+            textView.becomeFirstResponder()
+        } else {
+            // キーボードを閉じる
+            textView.resignFirstResponder()
+        }
     }
 
     private var isDeleting = false // 削除時は true にするフラグ
