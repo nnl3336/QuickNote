@@ -448,6 +448,7 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
 
         let appliedAttr = NSMutableAttributedString(attributedString: attributedText)
         
+        // 前回のハイライトをクリア
         appliedAttr.removeAttribute(.backgroundColor, range: NSRange(location: 0, length: appliedAttr.length))
         
         guard !keyword.isEmpty else {
@@ -476,11 +477,11 @@ class NoteEditorViewController: UIViewController, UITextViewDelegate, UITextPast
 
         textView.attributedText = appliedAttr
         
-        // --- 選択を解除（遅延させる） ---
-        DispatchQueue.main.async {
-            self.textView.selectedRange = NSRange(location: 0, length: 0)
-            self.scrollToSearchResult(index: 0)
-        }
+        // --- 選択を解除してカーソルが表示されないように ---
+        textView.selectedRange = NSRange(location: 0, length: 0)
+        
+        // 最初の検索結果までスクロール
+        scrollToSearchResult(index: 0)
     }
     private func clearHighlights() {
         guard let attributedText = textView.attributedText else { return }
